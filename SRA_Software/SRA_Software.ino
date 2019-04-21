@@ -10,119 +10,192 @@
 #include "SHT1x.h"// SHT-10 Sensor .h files
 #include <math.h>
 #include "RoveComm.h"
-
+/*
+ all caps on any constant that I have.  x
+ underscore pin after every name        x
+ space out the pin names                x
+*/
 //pin layout for Tiva C w/ tm4c129
-#define soil_Data PE_5    // Pin located in section X_9:A1, pin PE5
-#define ccd_Int PE_0      // Pin located in section X_9:B1, pin PE0
-#define methane_Vout PE_2 // Pin located in section X_9:B1, pin PE2
-#define atm_Dout PN_2     // Pin located in section X_9:D1, pin PN2
-#define sw_Flag1 PP_4     // Pin located in section X_7:A2, pin PP4
-#define sw_Flag2 PN_5     // Pin located in section X_7:A2, pin PN5
-#define sw_Error PN_4     // Pin located in section X_7:A2, pin PN4
-#define soil_Sck PB_5     // Pin located in seciotn X_7:B2, pin PB5
-#define ccd_OS PK_3       // Pin located in section X_7:B2, pin PK3
-#define uv_Toggle PP5     // Pin located in section X_7:D2, pin PP5
-#define DHTTYPE DHT22     // DHT 22 sensor/AM2302 sensor
+#define SOIL_DATA_PIN          PE_5// Pin located in section X_9:A1, pin PE5
+#define CCD_INT_PIN            PE_0// Pin located in section X_9:B1, pin PE0
+#define METHANE_VOUT_PIN       PE_2// Pin located in section X_9:B1, pin PE2
+#define ATM_DOUT_PIN           PN_2// Pin located in section X_9:D1, pin PN2
+#define SW_FLAG1_PIN           PP_4// Pin located in section X_7:A2, pin PP4
+#define SW_FLAG2_PIN           PN_5// Pin located in section X_7:A2, pin PN5
+#define SW_ERROR_PIN           PN_4// Pin located in section X_7:A2, pin PN4
+#define SOIL_SCK_PIN           PB_5// Pin located in seciotn X_7:B2, pin PB5
+#define CCD_OS_PIN             PK_3// Pin located in section X_7:B2, pin PK3
+#define UV_TOGGLE_PIN          PP_5// Pin located in section X_7:D2, pin PP5
+#define DHTTYPE DHT22              // DHT 22 sensor/AM2302 sensor
 
-int sensorValue = 0;
-int methanePpm;
+int   sensorValue = 0;
+int   methanePpm;
+float humidity_atm = 0;
+float temperature_atm = 0;
+float temperature_soil = 0;
+float moisture = 0;
 
 //Rovecomm
 RoveCommEthernetUdp Rovecomm;
+rovecomm_packet packet;
 
-SHT1x th_sensor(soil_Data, soil_Sck);
-DHT dht(atm_Dout, DHTTYPE);
+//delay of 5ms
+#define ROVECOMM_DELAY    5
 
-void setup() {
+SHT1x th_sensor(SOIL_DATA_PIN, SOIL_SCK_PIN);
+DHT dht(ATM_DOUT_PIN, DHTTYPE);
+
+void setup() 
+{
   Serial.begin(9600);
-  Rovecomm.begin(138);// SRA board IP: 138
-  
+  Rovecomm.begin(RC_SRASENSORSBOARD_FOURTHOCTET);// SRA board IP: 138
+  delay(ROVECOMM_DELAY);
   Serial.println("Sensors Begin");
-  pinMode(sw_Error, OUTPUT);
+  pinMode(UV_TOGGLE_PIN, OUTPUT);
+  pinMode(SW_ERROR_PIN, OUTPUT);
+  pinMode(SW_FLAG1_PIN, OUTPUT);
+  pinMode(SW_FLAG2_PIN, OUTPUT);
+  
+  //inizalise all output pins outputs and input.
   
   dht.begin();
 }
-void loop() {
-  delay(2000);
-  digitalWrite(methane_Vout, HIGH);
-//AM2302 Code for Temp and Humidity.
-  float humidity_atm= dht.readHumidity();
-  float temperature_atm= dht.readTemperature();
+
+void loop() 
+{ 
+  readAM2302();
   indicateSensorErrorAM2302(humidity_atm, temperature_atm);
- 
+  mthnSensorMQ4();
+  readSHT10();
+  
+  uint16_t SRADATA[RC_SRASENSORSBOARD_SENSORDATA_DATACOUNT];
+  SRADATA[RC_SRASENSORSBOARD_SENSORDATA_AIRTENTRY]=100*temperature_atm;
+  SRADATA[RC_SRASENSORSBOARD_SENSORDATA_AIRMENTRY]=100*humidity_atm;
+  SRADATA[RC_SRASENSORSBOARD_SENSORDATA_SOILTENTRY]=100*moisture;
+  SRADATA[RC_SRASENSORSBOARD_SENSORDATA_SOILMENTRY]=100*temperature_soil;
+  SRADATA[RC_SRASENSORSBOARD_SENSORDATA_METHANEENTRY]= methanePpm;
+  packet = Rovecomm.read();
+  
+  if(packet.data_id!=0)
+  {
+   
+    for(int i=0; i<packet.data_count; i++)
+    {
+      Serial.print(packet.data[i]);
+    }
+    switch(packet.data_id)
+    {
+      case  RC_SRASENSORSBOARD_UVLEDENABLE_DATAID:
+      {
+        toggleUvLed();
+        break;
+      }
+      case RC_SRASENSORSBOARD_SPECTROMETERRUN_DATAID:
+      {
+        digitalWrite(SW_FLAG1_PIN, HIGH);
+        if(!spectrometerRun())
+        {
+          digitalWrite(SW_ERROR_PIN, HIGH);
+          delay (1000);
+          digitalWrite(SW_ERROR_PIN, LOW);
+        }
+        digitalWrite(SW_FLAG1_PIN, LOW);
+
+      }
+    }
+  }
+  Rovecomm.write(RC_SRASENSORSBOARD_SENSORDATA_HEADER, SRADATA);
+  delay(ROVECOMM_DELAY);
+}
+
+
+
+//SHT-10 Sensor code for soil Temp and Moisture levels 
+void readSHT10()
+{
+  moisture = th_sensor.readHumidity();
+  temperature_soil = th_sensor.readTemperatureC();
+  Serial.print("Temperature: ");
+  Serial.print(temperature_soil);
+  Serial.print(" C, Humidity: ");
+  Serial.print(moisture);
+  Serial.println(" ");
+}
+
+
+
+//AM2302 Code for Temp and Humidity.
+void readAM2302()
+{
+  humidity_atm = dht.readHumidity();
+  temperature_atm = dht.readTemperature();
   Serial.print(F("Humidity: "));
   Serial.print(humidity_atm);
   Serial.print(F("% Temperature: "));
   Serial.print(temperature_atm);
   Serial.print(F(" C "));
   Serial.println((""));
+}
 
-//MQ-4 Code Start:
-  sensorValue = analogRead(methane_Vout);
-  methanePpm = map(methane_Vout, 0, 1023, 300, 10000);//300 - 10,000 are in parts per million.(units)
-  
+
+
+//MQ-4 Code for reading Methane Values
+void mthnSensorMQ4()
+{
+  delay(600); //Long delay will slow down code immensly
+  digitalWrite(METHANE_VOUT_PIN, HIGH);
+  methanePpm = map(analogRead(METHANE_VOUT_PIN), 0, 1023, 300, 10000);//300 - 10,000 are in parts per million.(units)
   Serial.print(methanePpm, DEC);
-  Serial.print(" Parts per million, Methane");
-  Serial.println("");
+  Serial.println(" Parts per million, Methane");
+}
 
-//SHT-10 Sensor code:
-  float temperature_soil = 0;
-  float moisture = 0;
-
-  moisture = th_sensor.readHumidity();
-  temperature_soil = th_sensor.readTemperatureC();
-  //indicateSensorErrorSHT10(moisture,temperature_soil);
+bool spectrometerRun()
+{
   
-  Serial.print("Temperature: ");
-  Serial.print(temperature_soil);
-  Serial.print(" C, Humidity: ");
-  Serial.print(moisture);
-  Serial.println(" ");
-
-  uint16_t SRADATA[5];
-  SRADATA[0]=temperature_atm;
-  SRADATA[1]=humidity_atm;
-  SRADATA[2]=moisture;
-  SRADATA[3]=temperature_soil;
-  SRADATA[4]= methanePpm;
-  Rovecomm.read();
-  Rovecomm.write(RC_SRASENSORSBOARD_SENSORDATA_DATAID, RC_SRASENSORSBOARD_SENSORDATA_DATACOUNT, SRADATA);
 }
 
-/*void indicateuv_Toggle ()
-{
-  digitalWrite(, HIGH);
-  return;
-}
-void indicateccd_OS ()
-{
-  digitalWrite(,HIGH);
-  return;
-}
-*/
-void indicateSensorErrorAM2302(float humidity_atm, float temperature_atm)
-{
-  if((isnan(temperature_atm) && isnan(humidity_atm)))
-  {
-    //Serial.println(("Failed to read from the AM2302 sensor!"));
-    digitalWrite(sw_Error, HIGH);
-    delay (600);
-    digitalWrite(sw_Error,LOW);
-    delay (300);
-    return;
-  }
-}
-
-/*
+//Indicates an Error with the SHT-10:
+//If flashing most likely cause is connection issues
 void indicateSensorErrorSHT10(float moisture, float temperature_soil)
 {
   if((isnan(temperature_soil) && isnan(moisture)))
   {
     //Serial.println(("Failed to read from the SHT10 sensor!"));
-    digitalWrite(sw_Error, HIGH);
+    digitalWrite(SW_ERROR_PIN, HIGH);
     delay (600);
-    digitalWrite(sw_Error,LOW);
+    digitalWrite(SW_ERROR_PIN,LOW);
     delay (300);
     return;
   }
-  */
+}
+
+
+
+//Indicates an error with the AM2302 Sensor.
+void indicateSensorErrorAM2302(float humidity_atm, float temperature_atm)
+{
+  if((isnan(temperature_atm) && isnan(humidity_atm)))
+  {
+    //Serial.println(("Failed to read from the AM2302 sensor!"));
+    digitalWrite(SW_ERROR_PIN, HIGH);
+    delay (600);
+    digitalWrite(SW_ERROR_PIN,LOW);
+    delay (300);
+    return;
+  }
+}
+
+
+
+//Toggles our UV Led on and off through rovecomm.
+void toggleUvLed()
+{
+  if(packet.data[0] == 1) //RC_SRASENSORSBOARD_UVLEDENABLE_ENABLED)
+  {
+    digitalWrite(UV_TOGGLE_PIN, HIGH);
+  }
+  else
+  {
+    digitalWrite(UV_TOGGLE_PIN, LOW);
+  }
+}
