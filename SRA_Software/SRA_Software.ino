@@ -1,4 +1,5 @@
 #include <Adafruit_Sensor.h>
+#include "Spectrometer.h"
 
 //Code: Austin Christman
 //SRA Software
@@ -24,7 +25,7 @@
 #define SW_FLAG2_PIN           PN_5// Pin located in section X_7:A2, pin PN5
 #define SW_ERROR_PIN           PN_4// Pin located in section X_7:A2, pin PN4
 #define SOIL_SCK_PIN           PB_5// Pin located in seciotn X_7:B2, pin PB5
-#define CCD_OS_PIN             PK_3// Pin located in section X_7:B2, pin PK3
+#define CCD_OS_PIN             A19 // Pin located in section X_7:B2, pin PK3
 #define UV_TOGGLE_PIN          PP_5// Pin located in section X_7:D2, pin PP5
 #define DHTTYPE DHT22              // DHT 22 sensor/AM2302 sensor
 
@@ -57,7 +58,7 @@ void setup()
   pinMode(SW_FLAG2_PIN, OUTPUT);
   
   //inizalise all output pins outputs and input.
-  
+  spectrometerSetup(A19)
   dht.begin();
 }
 
@@ -93,7 +94,7 @@ void loop()
       case RC_SRASENSORSBOARD_SPECTROMETERRUN_DATAID:
       {
         digitalWrite(SW_FLAG1_PIN, HIGH);
-        if(!spectrometerRun())
+        if(!spectrometerRun(A19))
         {
           digitalWrite(SW_ERROR_PIN, HIGH);
           delay (1000);
@@ -147,11 +148,6 @@ void mthnSensorMQ4()
   methanePpm = map(analogRead(METHANE_VOUT_PIN), 0, 1023, 300, 10000);//300 - 10,000 are in parts per million.(units)
   Serial.print(methanePpm, DEC);
   Serial.println(" Parts per million, Methane");
-}
-
-bool spectrometerRun()
-{
-  
 }
 
 //Indicates an Error with the SHT-10:
