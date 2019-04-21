@@ -1,16 +1,16 @@
-#include <Adafruit_Sensor.h>
-#include "Spectrometer.h"
-
 //Code: Austin Christman
 //SRA Software
+#include "Adafruit_Sensor.h"
 
-//.h Files
-
-#include "DHT_U.h" //AM2302 Sensor .h files
-#include "DHT.h"
-#include "SHT1x.h"// SHT-10 Sensor .h files
+#include "libraries/DHT/DHT_U.h" //AM2302 Sensor .h files
+#include "libraries/DHT/DHT.h"
+#include "libraries/SHT-XX/SHT1x.h"// SHT-10 Sensor .h files
 #include <math.h>
+
 #include "RoveComm.h"
+#include "libraries/Spectrometer/Spectrometer.h"
+
+
 /*
  all caps on any constant that I have.  x
  underscore pin after every name        x
@@ -58,7 +58,7 @@ void setup()
   pinMode(SW_FLAG2_PIN, OUTPUT);
   
   //inizalise all output pins outputs and input.
-  spectrometerSetup(A19)
+  spectrometerSetup(A19);
   dht.begin();
 }
 
