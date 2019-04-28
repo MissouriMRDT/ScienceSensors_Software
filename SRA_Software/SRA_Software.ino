@@ -2,13 +2,13 @@
 //SRA Software
 #include "Adafruit_Sensor.h"
 
-#include "libraries/DHT/DHT_U.h" //AM2302 Sensor .h files
-#include "libraries/DHT/DHT.h"
-#include "libraries/SHT-XX/SHT1x.h"// SHT-10 Sensor .h files
+#include "src/DHT/DHT_U.h" //AM2302 Sensor .h files
+#include "src/DHT/DHT.h"
+#include "src/SHT-XX/SHT1x.h"// SHT-10 Sensor .h files
 #include <math.h>
 
 #include "RoveComm.h"
-#include "libraries/Spectrometer/Spectrometer.h"
+#include "src/Spectrometer/Spectrometer.h"
 
 
 /*
