@@ -11,12 +11,14 @@
  * Manages communication with SHT1x series (SHT10, SHT11, SHT15)
  * temperature / humidity sensors from Sensirion (www.sensirion.com).
  */
+/*
 #if (ARDUINO >= 100)
-#include <Arduino.h>
+#include <Energia.h>
 #else
 #include <WProgram.h>
 #endif
-
+*/
+#include <Energia.h>
 #include "SHT1x.h"
 
 SHT1x::SHT1x(int dataPin, int clockPin)

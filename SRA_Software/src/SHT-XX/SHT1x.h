@@ -13,13 +13,14 @@
  */
 #ifndef SHT1x_h
 #define SHT1x_h
-
+#include <Energia.h>
+/*
 #if (ARDUINO >= 100)
-#include <Arduino.h>
+#include <Energia.h>
 #else
 #include <WProgram.h>
 #endif
-
+*/
 class SHT1x
 {
   public:

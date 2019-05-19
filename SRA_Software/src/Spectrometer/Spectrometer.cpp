@@ -16,7 +16,7 @@ void spectrometerSetup(int analogReadPin, bool printSerial)
 
 bool spectrometerRun(int analogReadPin, bool printSerial) {
   if(printSerial) Serial.println("---Spectrometer Run---");
-  
+
   int count = 0;
   int16_t data[MAX_DATA_LENGTH];
 
@@ -40,7 +40,7 @@ bool spectrometerRun(int analogReadPin, bool printSerial) {
   }
 
   //---End data capture---
-  
+
   Serial.print("Count: "); Serial.println(count);
   EthernetClient client = DataServer.available();
 

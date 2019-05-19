@@ -1,21 +1,17 @@
 //Code: Austin Christman
 //SRA Software
 #include "Adafruit_Sensor.h"
-
 #include "src/DHT/DHT_U.h" //AM2302 Sensor .h files
 #include "src/DHT/DHT.h"
 #include "src/SHT-XX/SHT1x.h"// SHT-10 Sensor .h files
 #include <math.h>
 
+
+//Rover .h Files
 #include "RoveComm.h"
 #include "src/Spectrometer/Spectrometer.h"
 
 
-/*
- all caps on any constant that I have.  x
- underscore pin after every name        x
- space out the pin names                x
-*/
 //pin layout for Tiva C w/ tm4c129
 #define SOIL_DATA_PIN          PE_5// Pin located in section X_9:A1, pin PE5
 #define CCD_INT_PIN            PE_0// Pin located in section X_9:B1, pin PE0
@@ -29,16 +25,19 @@
 #define UV_TOGGLE_PIN          PP_5// Pin located in section X_7:D2, pin PP5
 #define DHTTYPE DHT22              // DHT 22 sensor/AM2302 sensor
 
+
 int   sensorValue = 0;
-int   methanePpm;
+int   methanePpm = 0;
 float humidity_atm = 0;
 float temperature_atm = 0;
 float temperature_soil = 0;
 float moisture = 0;
 
+
 //Rovecomm
 RoveCommEthernetUdp Rovecomm;
 rovecomm_packet packet;
+
 
 //delay of 5ms
 #define ROVECOMM_DELAY    5
@@ -48,8 +47,10 @@ DHT dht(ATM_DOUT_PIN, DHTTYPE);
 
 void setup() 
 {
-  Serial.begin(9600);
-  Rovecomm.begin(RC_SRASENSORSBOARD_FOURTHOCTET);// SRA board IP: 138
+  Serial.begin(115200);
+  delay(100);
+  Serial.println("Serial Begun");
+  Rovecomm.begin(RC_SRASENSORSBOARD_FOURTHOCTET);  // SRA board IP: 138
   delay(ROVECOMM_DELAY);
   Serial.println("Sensors Begin");
   pinMode(UV_TOGGLE_PIN, OUTPUT);
@@ -64,10 +65,11 @@ void setup()
 
 void loop() 
 { 
+    
   readAM2302();
-  indicateSensorErrorAM2302(humidity_atm, temperature_atm);
   mthnSensorMQ4();
-  readSHT10();
+  readSHT10();  
+  indicateSensorErrorAM2302(humidity_atm, temperature_atm);
   
   uint16_t SRADATA[RC_SRASENSORSBOARD_SENSORDATA_DATACOUNT];
   SRADATA[RC_SRASENSORSBOARD_SENSORDATA_AIRTENTRY]=100*temperature_atm;
@@ -76,7 +78,7 @@ void loop()
   SRADATA[RC_SRASENSORSBOARD_SENSORDATA_SOILMENTRY]=100*temperature_soil;
   SRADATA[RC_SRASENSORSBOARD_SENSORDATA_METHANEENTRY]= methanePpm;
   packet = Rovecomm.read();
-  
+  Serial.println(".");
   if(packet.data_id!=0)
   {
    
@@ -93,14 +95,17 @@ void loop()
       }
       case RC_SRASENSORSBOARD_SPECTROMETERRUN_DATAID:
       {
+        Serial.println("Spectrometer Running");
+        digitalWrite(UV_TOGGLE_PIN, HIGH);
         digitalWrite(SW_FLAG1_PIN, HIGH);
-        if(!spectrometerRun(A19))
+        if(!spectrometerRun(A19, true)) //True prints data to serial
         {
           digitalWrite(SW_ERROR_PIN, HIGH);
           delay (1000);
           digitalWrite(SW_ERROR_PIN, LOW);
         }
         digitalWrite(SW_FLAG1_PIN, LOW);
+        digitalWrite(UV_TOGGLE_PIN, LOW);
 
       }
     }
@@ -145,9 +150,13 @@ void mthnSensorMQ4()
 {
   delay(600); //Long delay will slow down code immensly
   digitalWrite(METHANE_VOUT_PIN, HIGH);
+  methanePpm = analogRead(METHANE_VOUT_PIN);
+  Serial.println(methanePpm, DEC);
+  /*
   methanePpm = map(analogRead(METHANE_VOUT_PIN), 0, 1023, 300, 10000);//300 - 10,000 are in parts per million.(units)
   Serial.print(methanePpm, DEC);
   Serial.println(" Parts per million, Methane");
+  */
 }
 
 //Indicates an Error with the SHT-10:
