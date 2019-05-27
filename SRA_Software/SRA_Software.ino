@@ -23,11 +23,17 @@
 #define SOIL_SCK_PIN           PB_5// Pin located in seciotn X_7:B2, pin PB5
 #define CCD_OS_PIN             A19 // Pin located in section X_7:B2, pin PK3
 #define UV_TOGGLE_PIN          PP_5// Pin located in section X_7:D2, pin PP5
-#define DHTTYPE DHT22              // DHT 22 sensor/AM2302 sensor
+#define DHTTYPE                DHT22 // DHT 22 sensor/AM2302 sensor
 
+#define METHANE_ADC_LOW        950 //Value at NewMexico
+#define METHANE_ADC_HIGH       1000 
+#define METHANE_ACTUAL_LOW     1700 //Average ppb
+#define METHANE_ACTUAL_HIGH    1900 //ppb
+//#define METHANE_ACTUAL_LOW     1866 //Average ppb
+//#define METHANE_ACTUAL_HIGH    970000000 //ppb
 
 int   sensorValue = 0;
-int   methanePpm = 0;
+uint32_t   methanePpm = 0;
 float humidity_atm = 0;
 float temperature_atm = 0;
 float temperature_soil = 0;
@@ -49,14 +55,16 @@ void setup()
 {
   Serial.begin(115200);
   delay(100);
-  Serial.println("Serial Begun");
+  //Serial.println("Serial Begun");
   Rovecomm.begin(RC_SRASENSORSBOARD_FOURTHOCTET);  // SRA board IP: 138
   delay(ROVECOMM_DELAY);
-  Serial.println("Sensors Begin");
+  //Serial.println("Sensors Begin");
   pinMode(UV_TOGGLE_PIN, OUTPUT);
   pinMode(SW_ERROR_PIN, OUTPUT);
   pinMode(SW_FLAG1_PIN, OUTPUT);
   pinMode(SW_FLAG2_PIN, OUTPUT);
+
+  pinMode(METHANE_VOUT_PIN, INPUT);
   
   //inizalise all output pins outputs and input.
   spectrometerSetup(A19);
@@ -68,7 +76,7 @@ void loop()
     
   readAM2302();
   mthnSensorMQ4();
-  readSHT10();  
+  //  readSHT10();  
   indicateSensorErrorAM2302(humidity_atm, temperature_atm);
   
   uint16_t SRADATA[RC_SRASENSORSBOARD_SENSORDATA_DATACOUNT];
@@ -76,29 +84,30 @@ void loop()
   SRADATA[RC_SRASENSORSBOARD_SENSORDATA_AIRMENTRY]=100*humidity_atm;
   SRADATA[RC_SRASENSORSBOARD_SENSORDATA_SOILTENTRY]=100*moisture;
   SRADATA[RC_SRASENSORSBOARD_SENSORDATA_SOILMENTRY]=100*temperature_soil;
-  SRADATA[RC_SRASENSORSBOARD_SENSORDATA_METHANEENTRY]= methanePpm;
+  SRADATA[RC_SRASENSORSBOARD_SENSORDATA_METHANEENTRY]= (uint16_t)methanePpm;
   packet = Rovecomm.read();
-  Serial.println(".");
+  //Serial.println(".");
   if(packet.data_id!=0)
   {
    
     for(int i=0; i<packet.data_count; i++)
     {
-      Serial.print(packet.data[i]);
+      //Serial.print(packet.data[i]);
     }
     switch(packet.data_id)
     {
       case  RC_SRASENSORSBOARD_UVLEDENABLE_DATAID:
       {
+        //Serial.println("UV Toggle");
         toggleUvLed();
         break;
       }
       case RC_SRASENSORSBOARD_SPECTROMETERRUN_DATAID:
       {
-        Serial.println("Spectrometer Running");
+        //Serial.println("Spectrometer Running");
         digitalWrite(UV_TOGGLE_PIN, HIGH);
         digitalWrite(SW_FLAG1_PIN, HIGH);
-        if(!spectrometerRun(A19, true)) //True prints data to serial
+        if(!spectrometerRun(A19, packet.data[0], true)) //True prints data to serial
         {
           digitalWrite(SW_ERROR_PIN, HIGH);
           delay (1000);
@@ -106,7 +115,6 @@ void loop()
         }
         digitalWrite(SW_FLAG1_PIN, LOW);
         digitalWrite(UV_TOGGLE_PIN, LOW);
-
       }
     }
   }
@@ -121,11 +129,7 @@ void readSHT10()
 {
   moisture = th_sensor.readHumidity();
   temperature_soil = th_sensor.readTemperatureC();
-  Serial.print("Temperature: ");
-  Serial.print(temperature_soil);
-  Serial.print(" C, Humidity: ");
-  Serial.print(moisture);
-  Serial.println(" ");
+  Serial.print("Temperature: ");Serial.print(temperature_soil);Serial.print(" C, Humidity: ");Serial.print(moisture);Serial.println(" ");
 }
 
 
@@ -135,12 +139,7 @@ void readAM2302()
 {
   humidity_atm = dht.readHumidity();
   temperature_atm = dht.readTemperature();
-  Serial.print(F("Humidity: "));
-  Serial.print(humidity_atm);
-  Serial.print(F("% Temperature: "));
-  Serial.print(temperature_atm);
-  Serial.print(F(" C "));
-  Serial.println((""));
+  Serial.print(F("Humidity: "));Serial.print(humidity_atm);Serial.print(F("% Temperature: "));Serial.print(temperature_atm);Serial.print(F(" C "));Serial.println((""));
 }
 
 
@@ -148,15 +147,15 @@ void readAM2302()
 //MQ-4 Code for reading Methane Values
 void mthnSensorMQ4()
 {
-  delay(600); //Long delay will slow down code immensly
-  digitalWrite(METHANE_VOUT_PIN, HIGH);
-  methanePpm = analogRead(METHANE_VOUT_PIN);
+  delay(100); //Long delay will slow down code immensly
+  uint16_t adc_reading = analogRead(METHANE_VOUT_PIN);
+  Serial.print("Methane ADC:");  
+  Serial.println(adc_reading);
+  methanePpm = adc_reading;//map(adc_reading, METHANE_ADC_LOW, METHANE_ADC_HIGH, METHANE_ACTUAL_LOW, METHANE_ACTUAL_HIGH);//300 - 10,000 are in parts per million.(units)
+  constrain(methanePpm, 0, 65535); //to cast to lower unit
+  Serial.println("Methane Actual:");
   Serial.println(methanePpm, DEC);
-  /*
-  methanePpm = map(analogRead(METHANE_VOUT_PIN), 0, 1023, 300, 10000);//300 - 10,000 are in parts per million.(units)
-  Serial.print(methanePpm, DEC);
-  Serial.println(" Parts per million, Methane");
-  */
+  
 }
 
 //Indicates an Error with the SHT-10:
@@ -165,7 +164,7 @@ void indicateSensorErrorSHT10(float moisture, float temperature_soil)
 {
   if((isnan(temperature_soil) && isnan(moisture)))
   {
-    //Serial.println(("Failed to read from the SHT10 sensor!"));
+    Serial.println(("Failed to read from the SHT10 sensor!"));
     digitalWrite(SW_ERROR_PIN, HIGH);
     delay (600);
     digitalWrite(SW_ERROR_PIN,LOW);
@@ -181,7 +180,7 @@ void indicateSensorErrorAM2302(float humidity_atm, float temperature_atm)
 {
   if((isnan(temperature_atm) && isnan(humidity_atm)))
   {
-    //Serial.println(("Failed to read from the AM2302 sensor!"));
+    Serial.println(("Failed to read from the AM2302 sensor!"));
     digitalWrite(SW_ERROR_PIN, HIGH);
     delay (600);
     digitalWrite(SW_ERROR_PIN,LOW);

@@ -9,6 +9,12 @@
 //Must use PE_0 as interrupt pin
 void spectrometerSetup(int analogReadPin, bool printSerial = false);
 
-bool spectrometerRun(int analogReadPin, bool printSerial = false);
+bool spectrometerRun(int analogReadPin, int num_reads, bool printSerial = false);
+
+bool captureData(int analogReadPin, bool printSerial = false);
+
+bool averageData(int num_reads, bool printSerial = false);
+
+bool sendData(bool printSerial = false);
 
 #endif
