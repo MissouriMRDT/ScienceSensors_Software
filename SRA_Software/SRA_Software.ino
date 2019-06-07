@@ -82,11 +82,11 @@ void loop()
   uint16_t SRADATA[RC_SRASENSORSBOARD_SENSORDATA_DATACOUNT];
   SRADATA[RC_SRASENSORSBOARD_SENSORDATA_AIRTENTRY]=100*temperature_atm;
   SRADATA[RC_SRASENSORSBOARD_SENSORDATA_AIRMENTRY]=100*humidity_atm;
-  SRADATA[RC_SRASENSORSBOARD_SENSORDATA_SOILTENTRY]=100*moisture;
-  SRADATA[RC_SRASENSORSBOARD_SENSORDATA_SOILMENTRY]=100*temperature_soil;
+  SRADATA[RC_SRASENSORSBOARD_SENSORDATA_SOILTENTRY]=1;//100*moisture;
+  SRADATA[RC_SRASENSORSBOARD_SENSORDATA_SOILMENTRY]=1;//100*temperature_soil;
   SRADATA[RC_SRASENSORSBOARD_SENSORDATA_METHANEENTRY]= (uint16_t)methanePpm;
   packet = Rovecomm.read();
-  //Serial.println(".");
+  Serial.println(".");
   if(packet.data_id!=0)
   {
    
@@ -118,7 +118,28 @@ void loop()
       }
     }
   }
-  Rovecomm.write(RC_SRASENSORSBOARD_SENSORDATA_HEADER, SRADATA);
+
+  static int timer = 0;
+
+  if(timer > millis()) timer = millis();
+  
+  if(millis()-timer>=1000)
+  {
+    bool do_break = false;
+    for(int i = 0; i<5; i++)
+    {
+      Serial.println(SRADATA[i]);
+      if(SRADATA[i] == 0) do_break = true;
+    }
+    if(1)//!do_break)
+    {
+      Serial.println("Sending//////////////////////////////////////");
+      timer = millis();
+      Rovecomm.write(RC_SRASENSORSBOARD_SENSORDATA_HEADER, SRADATA);
+    }
+  }
+  
+  
   delay(ROVECOMM_DELAY);
 }
 
