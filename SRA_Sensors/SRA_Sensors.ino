@@ -69,21 +69,19 @@ void o2Reading(){
   {
     if(Serial4.read()=='O') //Start at the beginning of the o2 sensor output
     {
+      float[4] o2readings;
       readO2Bytes(1);
-      float ppo2 =  strtof(readO2Bytes(6).c_str(),NULL);
+      o2readings[0] =  strtof(readO2Bytes(6).c_str(),NULL); //Partial Pressure in mBar?
       readO2Bytes(4); 
-      float temperature = strtof(readO2Bytes(4).c_str(),NULL);
+      o2readings[1] = strtof(readO2Bytes(4).c_str(),NULL); //Temperature in celsius
       readO2Bytes(3);
-      float pressure = strtof(readO2Bytes(4).c_str(),NULL);
+      o2readings[2] = strtof(readO2Bytes(4).c_str(),NULL); //Pressure in mBar?
       readO2Bytes(3);
-      float o2Percent = strtof(readO2Bytes(6).c_str(),NULL);
+      o2readings[3] = strtof(readO2Bytes(6).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
       readO2Bytes(11);
-      if(temperature!=0&&o2Percent!=0)
-      {
-        RoveComm.write(RC_SRASENSORSBOARD_AIR_TEMPERATURE_DATA_DATAID,RC_SRASENSORSBOARD_AIR_TEMPERATURE_DATA_DATACOUNT,temperature);
-        RoveComm.write(RC_SRASENSORSBOARD_O2_CONCENTRATION_DATA_DATAID,RC_SRASENSORSBOARD_O2_CONCENTRATION_DATA_DATACOUNT,ppo2);
-        break;
-      }
+
+      RoveComm.write(RC_SRASENSORSBOARD_O2_DATA_DATAID,RC_SRASENSORSBOARD_O2_DATA_DATACOUNT, o2readings);
+      break;
     }
   }
 }
@@ -108,7 +106,7 @@ void co2Reading(){
   
   if(reading!=-1)//If we got co2 reading then output
   {
-    RoveComm.write(RC_SRASENSORSBOARD_CO2_CONCENTRATION_DATA_DATAID,RC_SRASENSORSBOARD_CO2_CONCENTRATION_DATA_DATACOUNT,(float)reading);
+    RoveComm.write(RC_SRASENSORSBOARD_CO2_DATA_DATAID,RC_SRASENSORSBOARD_CO2_DATA_DATACOUNT,(float)reading);
   }
 }
 
