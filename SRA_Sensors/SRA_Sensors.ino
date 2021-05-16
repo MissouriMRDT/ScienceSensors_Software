@@ -12,12 +12,12 @@ void setup(){
   //start serial connection
   Computer_Serial.begin(9600);//Computer
   CO2_Serial.begin(19200);//CO2
-  RoveCom_Serial.begin(115200);//RoveCom
+  //RoveCom_Serial.begin(115200);//RoveCom
   O2_Serial.begin(9600);//O2
   Methane_Serial.begin(115200); //Methane
   
   //Start RoveComm
-  RoveComm.begin(RC_SRASENSORSBOARD_FOURTHOCTET);
+  RoveComm.begin(RC_SCIENCESENSORSBOARD_FOURTHOCTET);
   
   pinMode(UVLED_ENABLE_PIN,OUTPUT); //Setup UvLed
   
@@ -43,7 +43,7 @@ void loop(){
   {
     switch (packet.data_id)
     {
-      case RC_SRASENSORSBOARD_UVLEDENABLE_DATAID: //Switch UVLED on or off
+      case RC_SCIENCESENSORSBOARD_UVLEDCONTROL_DATA_ID: //Switch UVLED on or off
         updateLed((int)packet.data[0]);
         break;
     }
@@ -54,7 +54,7 @@ void loop(){
 
 void updateLed(int msg)
 {
-  if(msg==RC_SRASENSORSBOARD_UVLEDENABLE_ENABLED)
+  if(msg==RC_SCIENCESENSORSBOARD_UVLEDCONTROL_DATA_ID)
   {
     digitalWrite(UVLED_ENABLE_PIN,HIGH);
     Computer_Serial.println("Setting High");
@@ -81,7 +81,7 @@ void o2Reading(){
       o2readings[3] = strtof(readO2Bytes(6).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
       readO2Bytes(11);
 
-      RoveComm.write(RC_SRASENSORSBOARD_O2_DATA_DATAID,RC_SRASENSORSBOARD_O2_DATA_DATACOUNT, o2readings);
+      RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
       break;
     }
   }
@@ -107,7 +107,7 @@ void co2Reading(){
   
   if(reading!=-1)//If we got co2 reading then output
   {
-    RoveComm.write(RC_SRASENSORSBOARD_CO2_DATA_DATAID,RC_SRASENSORSBOARD_CO2_DATA_DATACOUNT,(float)reading);
+    RoveComm.write(RC_SCIENCESENSORSBOARD_CO2_DATA_ID,RC_SCIENCESENSORSBOARD_CO2_DATA_COUNT,(float)reading);
   }
 }
 
