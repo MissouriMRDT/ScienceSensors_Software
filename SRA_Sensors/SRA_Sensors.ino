@@ -1,12 +1,7 @@
 #include <stdio.h> 
 #include <stdlib.h>
 #include "RoveComm.h"
-
-
-String readO2Bytes(int len); //O2 Sensor output to string
-void co2Reading(); //Takes ppm reading from the co2 sensor and sends to rovecomm
-void o2Reading(); //Takes a temperture and ppmo2 reading and sends to rovecomm
-void updateLed(int msg); //Toggles UV Led based on message from rovecomm
+#include "SRA_Sensors.h"
 
 int timing; //Variable the keeps count to make sure sensor data is only sent every second
 
@@ -15,15 +10,16 @@ void setup(){
   timing = 0;//Initialize the timing variable
   
   //start serial connection
-  Serial.begin(9600);//Computer
-  Serial7.begin(19200);//CO2
-  Serial3.begin(115200);//RoveCom
-  Serial4.begin(9600);//O2
+  Computer_Serial.begin(9600);//Computer
+  CO2_Serial.begin(19200);//CO2
+  //RoveCom_Serial.begin(115200);//RoveCom
+  O2_Serial.begin(9600);//O2
+  Methane_Serial.begin(115200); //Methane
   
   //Start RoveComm
-  RoveComm.begin(RC_SRASENSORSBOARD_FOURTHOCTET);
+  RoveComm.begin(RC_SCIENCESENSORSBOARD_FOURTHOCTET);
   
-  pinMode(58,OUTPUT); //Setup UvLed
+  pinMode(UVLED_ENABLE_PIN,OUTPUT); //Setup UvLed
   
   delay(100);
 }
@@ -35,6 +31,11 @@ void loop(){
     co2Reading();
     o2Reading();
   }
+
+  if(timing%210==0)
+  {
+    
+  }
   
   //Read from RoveComm
   rovecomm_packet packet = RoveComm.read();
@@ -42,34 +43,34 @@ void loop(){
   {
     switch (packet.data_id)
     {
-      case RC_SRASENSORSBOARD_UVLEDENABLE_DATAID: //Switch UVLED on or off
+      case RC_SCIENCESENSORSBOARD_UVLEDCONTROL_DATA_ID: //Switch UVLED on or off
         updateLed((int)packet.data[0]);
         break;
     }
   }
-  timing++; //Increment the timer
+  timing++; //Increment the timer //TODO: Create constants for polling rates?
   delay(100);
 }
 
 void updateLed(int msg)
 {
-  if(msg==RC_SRASENSORSBOARD_UVLEDENABLE_ENABLED)
+  if(msg==RC_SCIENCESENSORSBOARD_UVLEDCONTROL_DATA_ID)
   {
-    digitalWrite(58,HIGH);
-    Serial.println("Setting High");
+    digitalWrite(UVLED_ENABLE_PIN,HIGH);
+    Computer_Serial.println("Setting High");
   }
   else
   {
-    digitalWrite(58,LOW);
-    Serial.println("Setting Low");
+    digitalWrite(UVLED_ENABLE_PIN,LOW);
+    Computer_Serial.println("Setting Low");
   }
 }
 void o2Reading(){
   for(int i=0;i<25;i++)
   {
-    if(Serial4.read()=='O') //Start at the beginning of the o2 sensor output
+    if(O2_Serial.read()=='O') //Start at the beginning of the o2 sensor output
     {
-      float[4] o2readings;
+      float o2readings[4];
       readO2Bytes(1);
       o2readings[0] =  strtof(readO2Bytes(6).c_str(),NULL); //Partial Pressure in mBar?
       readO2Bytes(4); 
@@ -80,7 +81,7 @@ void o2Reading(){
       o2readings[3] = strtof(readO2Bytes(6).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
       readO2Bytes(11);
 
-      RoveComm.write(RC_SRASENSORSBOARD_O2_DATA_DATAID,RC_SRASENSORSBOARD_O2_DATA_DATACOUNT, o2readings);
+      RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
       break;
     }
   }
@@ -88,25 +89,25 @@ void o2Reading(){
 
 void co2Reading(){
   //Send request to co2 sensor for data
-  Serial7.write(0xFF);
-  Serial7.write(0xFE);
-  Serial7.write(0x02);
-  Serial7.write(0x02);
-  Serial7.write(0x03);
+  CO2_Serial.write(0xFF);
+  CO2_Serial.write(0xFE);
+  CO2_Serial.write(0x02);
+  CO2_Serial.write(0x02);
+  CO2_Serial.write(0x03);
   delay(20);
   
   //Read data from co2 sensor
   //First three reads are headers
-  Serial7.read();
-  Serial7.read();
-  Serial7.read();
-  byte msb=Serial7.read(); //Sensor data is sent in two bytes
-  byte lsb=Serial7.read();
+  CO2_Serial.read();
+  CO2_Serial.read();
+  CO2_Serial.read();
+  byte msb=CO2_Serial.read(); //Sensor data is sent in two bytes
+  byte lsb=CO2_Serial.read();
   short reading=(msb<<8)|(lsb&0xff);//Combine the data
   
   if(reading!=-1)//If we got co2 reading then output
   {
-    RoveComm.write(RC_SRASENSORSBOARD_CO2_DATA_DATAID,RC_SRASENSORSBOARD_CO2_DATA_DATACOUNT,(float)reading);
+    RoveComm.write(RC_SCIENCESENSORSBOARD_CO2_DATA_ID,RC_SCIENCESENSORSBOARD_CO2_DATA_COUNT,(float)reading);
   }
 }
 
@@ -115,6 +116,6 @@ String readO2Bytes(int len)
 {
   String output="";
   for(int i=0;i<len;i++)
-    output+=(char)Serial4.read();
+    output+=(char)O2_Serial.read();
    return output;
 }
