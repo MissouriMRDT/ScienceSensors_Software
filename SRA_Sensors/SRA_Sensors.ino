@@ -36,7 +36,7 @@ void loop(){
   {
     switch(packet.data_id)
     {
-      case RC_SCIENCESENSORSBOARD_UVLEDCONTROL_DATA_ID:    //Switch UVLED on or off
+      case RC_SCIENCESENSORSBOARD_LIGHTS_DATA_ID:    //Switch UVLED on or off
         updateLed((int)packet.data[0]);
         break;
     }
@@ -47,7 +47,7 @@ void loop(){
 
 void updateLed(int msg)
 {
-  if(msg==RC_SCIENCESENSORSBOARD_UVLEDCONTROL_DATA_ID)
+  if(msg==RC_SCIENCESENSORSBOARD_LIGHTS_DATA_ID)
   {
     digitalWrite(UVLED_ENABLE_PIN,HIGH);
     Computer_Serial.println("Setting High");
@@ -65,15 +65,9 @@ void o2Reading()
   {
     if(O2_Serial.read()=='O') //Start at the beginning of the o2 sensor output
     {
-      float o2readings[4];
-      readO2Bytes(1);
-      o2readings[0] =  strtof(readO2Bytes(6).c_str(),NULL); //Partial Pressure in mBar?
-      readO2Bytes(4); 
-      o2readings[1] = strtof(readO2Bytes(4).c_str(),NULL); //Temperature in celsius
-      readO2Bytes(3);
-      o2readings[2] = strtof(readO2Bytes(4).c_str(),NULL); //Pressure in mBar?
-      readO2Bytes(3);
-      o2readings[3] = strtof(readO2Bytes(6).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
+      float o2readings[1];
+      readO2Bytes(25);
+      o2readings[0] = strtof(readO2Bytes(6).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
       readO2Bytes(11);
 
       RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
