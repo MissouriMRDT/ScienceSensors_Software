@@ -1,54 +1,47 @@
-#include <stdio.h> 
-#include <stdlib.h>
-#include "RoveComm.h"
 #include "SRA_Sensors.h"
 
-int timing; //Variable the keeps count to make sure sensor data is only sent every second
+int timing;   //variable to keep count
 
-RoveCommEthernetUdp RoveComm;
+RoveCommEthernet RoveComm; //what is this?
+rovecomm_packet packet;
+
+EthernetServer TCPServer(RC_ROVECOMM_SCIENCESENSORSBOARD_PORT);
+
 void setup(){
-  timing = 0;//Initialize the timing variable
-  
-  //start serial connection
-  Computer_Serial.begin(9600);//Computer
-  CO2_Serial.begin(19200);//CO2
-  //RoveCom_Serial.begin(115200);//RoveCom
-  O2_Serial.begin(9600);//O2
-  Methane_Serial.begin(115200); //Methane
-  
-  //Start RoveComm
-  RoveComm.begin(RC_SCIENCESENSORSBOARD_FOURTHOCTET);
-  
-  pinMode(UVLED_ENABLE_PIN,OUTPUT); //Setup UvLed
-  
+  timing = 0;   //Initialize the timing variable
+
+  Computer_Serial.begin(9600);
+  CO2_Serial.begin(19200);
+  O2_Serial.begin(9600);  
+
+  //start RoveComm
+  RoveComm.begin(RC_SCIENCESENSORSBOARD_FOURTHOCTET, &TCPServer);
+
+  pinMode(UVLED_ENABLE_PIN,OUTPUT); //setup UVLED
+
   delay(100);
 }
 
 void loop(){
-  //Read Sensor data only every second
+  //Read sensor data only every second
   if(timing%10==0)
   {
-    co2Reading();
     o2Reading();
+    co2Reading();
   }
 
-  if(timing%210==0)
-  {
-    
-  }
-  
   //Read from RoveComm
-  rovecomm_packet packet = RoveComm.read();
-  if(packet.data_id!=0)
+  packet = RoveComm.read();
+  if(packet.data_id != 0)
   {
-    switch (packet.data_id)
+    switch(packet.data_id)
     {
-      case RC_SCIENCESENSORSBOARD_UVLEDCONTROL_DATA_ID: //Switch UVLED on or off
+      case RC_SCIENCESENSORSBOARD_UVLEDCONTROL_DATA_ID:    //Switch UVLED on or off
         updateLed((int)packet.data[0]);
         break;
     }
   }
-  timing++; //Increment the timer //TODO: Create constants for polling rates?
+  timing++;   //Increment the timer
   delay(100);
 }
 
@@ -65,7 +58,9 @@ void updateLed(int msg)
     Computer_Serial.println("Setting Low");
   }
 }
-void o2Reading(){
+
+void o2Reading()
+{
   for(int i=0;i<25;i++)
   {
     if(O2_Serial.read()=='O') //Start at the beginning of the o2 sensor output
@@ -87,7 +82,8 @@ void o2Reading(){
   }
 }
 
-void co2Reading(){
+void co2Reading()
+{
   //Send request to co2 sensor for data
   CO2_Serial.write(0xFF);
   CO2_Serial.write(0xFE);
@@ -104,7 +100,7 @@ void co2Reading(){
   byte msb=CO2_Serial.read(); //Sensor data is sent in two bytes
   byte lsb=CO2_Serial.read();
   short reading=(msb<<8)|(lsb&0xff);//Combine the data
-  
+
   if(reading!=-1)//If we got co2 reading then output
   {
     RoveComm.write(RC_SCIENCESENSORSBOARD_CO2_DATA_ID,RC_SCIENCESENSORSBOARD_CO2_DATA_COUNT,(float)reading);
