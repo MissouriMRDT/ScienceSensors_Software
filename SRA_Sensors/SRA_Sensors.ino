@@ -18,6 +18,13 @@ void setup(){
   RoveComm.begin(RC_SCIENCESENSORSBOARD_FOURTHOCTET, &TCPServer);
 
   pinMode(UVLED_ENABLE_PIN,OUTPUT); //setup UVLED
+  pinMode(Laser1,OUTPUT);
+  pinMode(Laser2,OUTPUT);
+  pinMode(Laser3,OUTPUT);
+
+  digitalWrite(Laser1, LOW);
+  digitalWrite(Laser2, LOW);
+  digitalWrite(Laser3, LOW);
 
   delay(100);
 }
@@ -39,6 +46,14 @@ void loop(){
       case RC_SCIENCESENSORSBOARD_LIGHTS_DATA_ID:    //Switch UVLED on or off
         updateLed((int)packet.data[0]);
         break;
+      case RC_SCIENCESENSORSBOARD_FLASERS_DATA_ID:
+        uint8_t* lasersOn = packet.data[0];
+        if(laserOn == true)
+        {
+          digitalWrite(Laser1, HIGH);
+          digitalWrite(Laser2, HIGH);
+          digitalWrite(Laser3, HIGH); 
+        }
     }
   }
   timing++;   //Increment the timer

@@ -8,16 +8,16 @@
 
 #define Computer_Serial Serial
 #define RoveCom_Serial Serial3
-#define O2_Serial Serial7
-#define CO2_Serial Serial5
+#define O2_Serial Serial5
+#define CO2_Serial Serial7
 
-#define Photodiode1 PE_0
-#define Photodiode2 PE_1
-#define Photodiode3 PE_2
+#define Photodiode1 PE0
+#define Photodiode2 PE1
+#define Photodiode3 PE2
 
-#define Laser1 C2_8
-#define Laser2 C2_9
-#define Laser3 C2_10
+#define Laser1 PK7
+#define Laser2 PK6
+#define Laser3 PH1
 
 #define Lights PQ_1
 
