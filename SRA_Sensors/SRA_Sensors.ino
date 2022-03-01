@@ -142,7 +142,7 @@ void no2Reading()
   uint16_t raw = read();
 
   // get analog value
-  uint16_t val = raw * ref_voltage / adc_resolution;
+  float val = raw * ref_voltage / adc_resolution;
 
   RoveComm.write(RC_SCIENCESENSORSBOARD_NO2_DATA_ID,RC_SCIENCESENSORSBOARD_NO2_DATA_COUNT,(float)val);
 
@@ -158,9 +158,11 @@ uint16_t read()
   digitalWrite(NO2_CS, LOW);
 
   // receive first(msb) 5 bits
-  first = SPI.transfer(0x00) & 0x1F;
+  first = SPI.transfer(0x00);
+  Computer_Serial.println(first);
   // receive last(lsb) 8 bits
   last = SPI.transfer(0x00);
+  Computer_Serial.println(last);
 
   // deactivate ADC with slave select
   digitalWrite(NO2_CS, HIGH);

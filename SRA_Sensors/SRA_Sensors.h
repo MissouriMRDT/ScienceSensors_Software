@@ -13,7 +13,7 @@
 #define CO2_Serial Serial7
 #define NO2_SCL PB_2
 #define NO2_SDA PB_3
-#define NO2_CS PK_0
+#define NO2_CS PQ_1
 
 
 #define ADC_CLK 1600000
@@ -28,7 +28,7 @@
 #define Laser2 PK_6
 #define Laser3 PH_1
 
-#define Lights PQ_1
+#define Lights PK_0
 
 String readO2Bytes(int len); //O2 Sensor output to string
 void co2Reading(); //Takes ppm reading from the co2 sensor and sends to rovecomm
