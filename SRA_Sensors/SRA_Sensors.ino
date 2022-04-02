@@ -144,6 +144,7 @@ void no2Reading()
   // get analog value
   float val = raw * ref_voltage / adc_resolution;
 
+  serial.println((float)val);
   RoveComm.write(RC_SCIENCESENSORSBOARD_NO2_DATA_ID,RC_SCIENCESENSORSBOARD_NO2_DATA_COUNT,(float)val);
 
   delay(100);
