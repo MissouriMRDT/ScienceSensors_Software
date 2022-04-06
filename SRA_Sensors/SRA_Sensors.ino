@@ -13,6 +13,7 @@ void setup(){
   Computer_Serial.begin(9600);
   CO2_Serial.begin(19200);
   O2_Serial.begin(9600);  
+  CH4_Serial.begin(115200);
 
   //start RoveComm
   RoveComm.begin(RC_SCIENCESENSORSBOARD_FOURTHOCTET, &TCPServer);
@@ -47,6 +48,7 @@ void loop(){
     o2Reading();
     co2Reading();
     no2Reading();
+    ch4Reading();
   }
 
   //Read from RoveComm
@@ -93,11 +95,28 @@ void o2Reading()
     if(O2_Serial.read()=='O') //Start at the beginning of the o2 sensor output
     {
       float o2readings[1];
-      readO2Bytes(25);
+      readO2Bytes(25); // skipping to the percent concentration
       o2readings[0] = strtof(readO2Bytes(6).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
-      readO2Bytes(11);
+      readO2Bytes(11); //skipping rest of string
 
       RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
+      break;
+    }
+  }
+}
+
+void ch4Reading()
+{
+  for(int i=0;i<25;i++)
+  {
+    if(CH4_Serial.read()=='A') //Start at the beginning of the ch4 sensor output
+    {
+      float ch4readings[1];
+      readO2Bytes(18); // skipping to the percent concentration
+      ch4readings[0] = strtof(readO2Bytes(3).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
+      readO2Bytes(25); //skipping rest of string
+
+      RoveComm.write(RC_SCIENCESENSORSBOARD_CH4_DATA_ID,RC_SCIENCESENSORSBOARD_CH4_DATA_COUNT, ch4readings);
       break;
     }
   }
@@ -137,9 +156,19 @@ String readO2Bytes(int len)
    return output;
 }
 
+//Returns a string of the next "len" bytes read from Ch4 sensor
+String readCh4Bytes(int len)
+{
+  String output="";
+  for(int i=0;i<len;i++)
+    output+=(char)CH4_Serial.read();
+   return output;
+}
+
 void no2Reading()
 {
-  uint16_t raw = read();
+  //gets adc value from sensor output
+  uint16_t raw = readNo2();
 
   // get analog value
   float val = raw * ref_voltage / adc_resolution;
@@ -150,7 +179,7 @@ void no2Reading()
   delay(100);
 }
 
-uint16_t read()
+uint16_t readNo2()
 {
   byte first = 0;
   byte last = 0;
