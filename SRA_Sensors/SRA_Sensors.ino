@@ -47,8 +47,10 @@ void loop(){
   {
     o2Reading();
     co2Reading();
+    noReading();
     no2Reading();
     ch4Reading();
+    pdReading();
   }
 
   //Read from RoveComm
@@ -88,6 +90,26 @@ void updateLed(int msg)
   }
 }
 
+void pdReading()
+{
+  float pdreadings[3];
+  //gets adc value from sensor output
+  uint16_t raw1 = analogRead(Photodiode1);
+  uint16_t raw2 = analogRead(Photodiode2);
+  uint16_t raw3 = analogRead(Photodiode3);
+
+  // get current value
+  float v1 = raw1 * ref_voltage / adc_resolution;
+  float v2 = raw2 * ref_voltage / adc_resolution;
+  float v3 = raw3 * ref_voltage / adc_resolution;
+
+  serial.println((float)v1);
+  serial.println((float)v2);
+  serial.println((float)v3);
+
+  RoveComm.write(RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_ID,RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_COUNT, pdreadings);
+}
+
 void o2Reading()
 {
   for(int i=0;i<25;i++)
@@ -98,7 +120,10 @@ void o2Reading()
       readO2Bytes(25); // skipping to the percent concentration
       o2readings[0] = strtof(readO2Bytes(6).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
       readO2Bytes(11); //skipping rest of string
-
+      if(o2readings[0]>500000)
+      {
+        o2readings[0] = o2readings[0] >> 1
+      }
       RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
       break;
     }
@@ -111,12 +136,14 @@ void ch4Reading()
   {
     if(CH4_Serial.read()=='A') //Start at the beginning of the ch4 sensor output
     {
-      float ch4readings[1];
+      float ch4readings[2];
       readO2Bytes(18); // skipping to the percent concentration
-      ch4readings[0] = strtof(readO2Bytes(3).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
-      readO2Bytes(25); //skipping rest of string
+      ch4readings[0] = strtof(readCh4Bytes(4).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
+      readO2Bytes(17); //skipping to temperature
+      ch4readings[1] = strtof(readCh4Bytes(2).c_str(),NULL)
+      readO2Bytes(17); //skipping rest of string
 
-      RoveComm.write(RC_SCIENCESENSORSBOARD_CH4_DATA_ID,RC_SCIENCESENSORSBOARD_CH4_DATA_COUNT, ch4readings);
+      RoveComm.write(RC_SCIENCESENSORSBOARD_CH3_DATA_ID,RC_SCIENCESENSORSBOARD_CH3_DATA_COUNT, ch4readings);
       break;
     }
   }
@@ -163,6 +190,20 @@ String readCh4Bytes(int len)
   for(int i=0;i<len;i++)
     output+=(char)CH4_Serial.read();
    return output;
+}
+
+void noReading()
+{
+  //gets adc value from sensor output
+  uint16_t raw = analogRead(NO_Gas);
+
+  // get analog value
+  float val = raw * ref_voltage / adc_resolution;
+
+  serial.println((float)val);
+  RoveComm.write(RC_SCIENCESENSORSBOARD_NO_DATA_ID,RC_SCIENCESENSORSBOARD_NO_DATA_COUNT,(float)val);
+
+  delay(100);
 }
 
 void no2Reading()
