@@ -93,12 +93,12 @@ void updateLed(int msg)
 void pdReading()
 {
   float pdreadings[3];
-  //gets adc value from sensor output
+  //gets adc values from sensor output
   uint16_t raw1 = analogRead(Photodiode1);
   uint16_t raw2 = analogRead(Photodiode2);
   uint16_t raw3 = analogRead(Photodiode3);
 
-  // get current value
+  // get voltage values
   float v1 = raw1 * ref_voltage / adc_resolution;
   float v2 = raw2 * ref_voltage / adc_resolution;
   float v3 = raw3 * ref_voltage / adc_resolution;
@@ -106,6 +106,11 @@ void pdReading()
   serial.println((float)v1);
   serial.println((float)v2);
   serial.println((float)v3);
+
+  //get current values from voltage values from formula
+  float pdreadings[0] = reverseCurrent*(exp(-(50/3) * v1)-1) - darkCurrent; 
+  float pdreadings[1] = reverseCurrent*(exp(-(50/3) * v2)-1) - darkCurrent;
+  float pdreadings[2] = reverseCurrent*(exp(-(50/3) * v3)-1) - darkCurrent;
 
   RoveComm.write(RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_ID,RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_COUNT, pdreadings);
 }
@@ -120,10 +125,12 @@ void o2Reading()
       readO2Bytes(25); // skipping to the percent concentration
       o2readings[0] = strtof(readO2Bytes(6).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
       readO2Bytes(11); //skipping rest of string
-      if(o2readings[0]>500000)
+
+      if(o2readings[0]>500000) //correction for o2 values being randomly multiplied by 10
       {
-        o2readings[0] = o2readings[0] >> 1
+        o2readings[0] = o2readings[0] / 10;
       }
+
       RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
       break;
     }
@@ -142,6 +149,8 @@ void ch4Reading()
       readO2Bytes(17); //skipping to temperature
       ch4readings[1] = strtof(readCh4Bytes(2).c_str(),NULL)
       readO2Bytes(17); //skipping rest of string
+
+      //will likely need some sort of correction like o2
 
       RoveComm.write(RC_SCIENCESENSORSBOARD_CH3_DATA_ID,RC_SCIENCESENSORSBOARD_CH3_DATA_COUNT, ch4readings);
       break;
