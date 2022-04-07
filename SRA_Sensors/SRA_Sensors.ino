@@ -93,6 +93,7 @@ void updateLed(int msg)
 void pdReading()
 {
   float pdreadings[3];
+
   //gets adc values from sensor output
   uint16_t raw1 = analogRead(Photodiode1);
   uint16_t raw2 = analogRead(Photodiode2);
@@ -126,12 +127,12 @@ void o2Reading()
       o2readings[0] = strtof(readO2Bytes(6).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
       readO2Bytes(11); //skipping rest of string
 
-      if(o2readings[0]>500000) //correction for o2 values being randomly multiplied by 10
+      if(o2readings[0]>300000) //correction for o2 values being randomly multiplied by 10, max readable value should be 25%
       {
         o2readings[0] = o2readings[0] / 10;
       }
 
-      RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
+      RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings[0]);
       break;
     }
   }
@@ -144,11 +145,11 @@ void ch4Reading()
     if(CH4_Serial.read()=='A') //Start at the beginning of the ch4 sensor output
     {
       float ch4readings[2];
-      readO2Bytes(18); // skipping to the percent concentration
+      readCh4Bytes(18); // skipping to the percent concentration
       ch4readings[0] = strtof(readCh4Bytes(4).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
-      readO2Bytes(17); //skipping to temperature
+      readCh4Bytes(17); //skipping to temperature
       ch4readings[1] = strtof(readCh4Bytes(2).c_str(),NULL)
-      readO2Bytes(17); //skipping rest of string
+      readCh4Bytes(7); //skipping rest of string
 
       //will likely need some sort of correction like o2
 
