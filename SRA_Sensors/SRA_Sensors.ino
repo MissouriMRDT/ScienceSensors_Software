@@ -10,13 +10,13 @@ EthernetServer TCPServer(RC_ROVECOMM_SCIENCESENSORSBOARD_PORT);
 void setup(){
   timing = 0;   //Initialize the timing variable
 
-  Computer_Serial.begin(9600);
+  Computer_Serial.begin(115200);
   CO2_Serial.begin(19200);
   O2_Serial.begin(9600);  
   CH4_Serial.begin(115200);
 
   //start RoveComm
-  RoveComm.begin(RC_SCIENCESENSORSBOARD_FOURTHOCTET, &TCPServer);
+  RoveComm.begin(RC_SCIENCESENSORSBOARD_FOURTHOCTET, &TCPServer, RC_ROVECOMM_SCIENCESENSORSBOARD_MAC);
 
   pinMode(UVLED_ENABLE_PIN,OUTPUT); //setup UVLED
   pinMode(Laser1,OUTPUT);
@@ -104,14 +104,14 @@ void pdReading()
   float v2 = raw2 * ref_voltage / adc_resolution;
   float v3 = raw3 * ref_voltage / adc_resolution;
 
-  serial.println((float)v1);
-  serial.println((float)v2);
-  serial.println((float)v3);
+  Serial.println((float)v1);
+  Serial.println((float)v2);
+  Serial.println((float)v3);
 
   //get current values from voltage values from formula
-  float pdreadings[0] = reverseCurrent*(exp(-(50/3) * v1)-1) - darkCurrent; 
-  float pdreadings[1] = reverseCurrent*(exp(-(50/3) * v2)-1) - darkCurrent;
-  float pdreadings[2] = reverseCurrent*(exp(-(50/3) * v3)-1) - darkCurrent;
+  pdreadings[0] = reverseCurrent*(exp(-(50/3) * v1)-1) - darkCurrent; 
+  pdreadings[1] = reverseCurrent*(exp(-(50/3) * v2)-1) - darkCurrent;
+  pdreadings[2] = reverseCurrent*(exp(-(50/3) * v3)-1) - darkCurrent;
 
   RoveComm.write(RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_ID,RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_COUNT, pdreadings);
 }
@@ -148,7 +148,7 @@ void ch4Reading()
       readCh4Bytes(18); // skipping to the percent concentration
       ch4readings[0] = strtof(readCh4Bytes(4).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
       readCh4Bytes(17); //skipping to temperature
-      ch4readings[1] = strtof(readCh4Bytes(2).c_str(),NULL)
+      ch4readings[1] = strtof(readCh4Bytes(2).c_str(),NULL);
       readCh4Bytes(7); //skipping rest of string
 
       //will likely need some sort of correction like o2
@@ -210,7 +210,7 @@ void noReading()
   // get analog value
   float val = raw * ref_voltage / adc_resolution;
 
-  serial.println((float)val);
+  Serial.println((float)val);
   RoveComm.write(RC_SCIENCESENSORSBOARD_NO_DATA_ID,RC_SCIENCESENSORSBOARD_NO_DATA_COUNT,(float)val);
 
   delay(100);
@@ -224,7 +224,7 @@ void no2Reading()
   // get analog value
   float val = raw * ref_voltage / adc_resolution;
 
-  serial.println((float)val);
+  Serial.println((float)val);
   RoveComm.write(RC_SCIENCESENSORSBOARD_NO2_DATA_ID,RC_SCIENCESENSORSBOARD_NO2_DATA_COUNT,(float)val);
 
   delay(100);
