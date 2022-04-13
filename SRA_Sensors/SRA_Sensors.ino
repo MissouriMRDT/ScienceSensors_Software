@@ -118,21 +118,21 @@ void pdReading()
 
 void o2Reading()
 {
-  for(int i=0;i<25;i++)
+  for(int i=0;i<2;i++)
   {
     if(O2_Serial.read()=='O') //Start at the beginning of the o2 sensor output
     {
       float o2readings[1];
       readO2Bytes(25); // skipping to the percent concentration
-      o2readings[0] = strtof(readO2Bytes(6).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
+      o2readings[0] = strtof(readO2Bytes(6).c_str(),NULL)*10000.0; //Concentration - read in percent, converted to ppm
       readO2Bytes(11); //skipping rest of string
 
       if(o2readings[0]>300000) //correction for o2 values being randomly multiplied by 10, max readable value should be 25%
       {
-        o2readings[0] = o2readings[0] / 10;
+        o2readings[0] /= 10.0;
       }
 
-      RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings[0]);
+      RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
       break;
     }
   }
