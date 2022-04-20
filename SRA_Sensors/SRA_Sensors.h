@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "RoveComm.h"
 #include <SPI.h>
+#include "USBHost_t36.h"
 
 #define UVLED_ENABLE_PIN A4
 
@@ -45,5 +46,7 @@ void noReading(); //Takes voltage reading from no sensor and sends to rovecomm
 void pdReading(); //Takes voltage reading from photodiodes, converts to current and sends to rovecomm
 void updateLed(int msg); //Toggles UV Led based on message from rovecomm
 
+USBHost myusb;
+USBSerial userial(myusb);
 
 #endif

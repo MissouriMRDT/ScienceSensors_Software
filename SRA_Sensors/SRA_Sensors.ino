@@ -14,6 +14,8 @@ void setup(){
   CO2_Serial.begin(19200);
   O2_Serial.begin(9600);  
   CH4_Serial.begin(115200);
+  myusb.begin();
+  userial.begin(115200);
 
   //start RoveComm
   RoveComm.begin(RC_SCIENCESENSORSBOARD_FOURTHOCTET, &TCPServer, RC_ROVECOMM_SCIENCESENSORSBOARD_MAC);
@@ -34,23 +36,24 @@ void setup(){
   digitalWrite(NO2_CS, HIGH);
 
   // initialize SPI interface for MCP3208
-  SPISettings settings(ADC_CLK, MSBFIRST, SPI_MODE0);
-  SPI.begin();
-  SPI.beginTransaction(settings);
+  //SPISettings settings(ADC_CLK, MSBFIRST, SPI_MODE0);
+  //SPI.begin();
+  //SPI.beginTransaction(settings);
 
   delay(100);
 }
 
 void loop(){
   //Read sensor data only every second
+  myusb.Task();
   if(timing%10==0)
   {
     o2Reading();
     co2Reading();
-    noReading();
-    no2Reading();
+    //noReading();
+    //no2Reading();
     ch4Reading();
-    pdReading();
+    //pdReading();
   }
 
   //Read from RoveComm
@@ -140,21 +143,25 @@ void o2Reading()
 
 void ch4Reading()
 {
-  for(int i=0;i<25;i++)
+  for(int i=0;i<2;i++)
   {
-    if(CH4_Serial.read()=='A') //Start at the beginning of the ch4 sensor output
+    if(userial.read() =='C') //Start at the beginning of the ch4 sensor output
     {
-      float ch4readings[2];
-      readCh4Bytes(18); // skipping to the percent concentration
-      ch4readings[0] = strtof(readCh4Bytes(4).c_str(),NULL)*10000; //Concentration - read in percent, converted to ppm
-      readCh4Bytes(17); //skipping to temperature
-      ch4readings[1] = strtof(readCh4Bytes(2).c_str(),NULL);
-      readCh4Bytes(7); //skipping rest of string
+      if(userial.read() ==':') //Start at the beginning of the ch4 sensor output
+      {
+        float ch4readings[2];
+        //readCh4Bytes(18); // skipping to the percent concentration
+        ch4readings[0] = strtof(readCh4Bytes(4).c_str(),NULL); //Concentration - read in percent, converted to ppm
+        //readCh4Bytes(17); //skipping to temperature
+        ch4readings[1] = strtof(readCh4Bytes(2).c_str(),NULL);
+        //readCh4Bytes(7); //skipping rest of string
 
-      //will likely need some sort of correction like o2
+        //will likely need some sort of correction like o2
+        //float ch4_ppm = map(ch4readings[0], 7000, 100000, 1.7, 50000);
 
-      RoveComm.write(RC_SCIENCESENSORSBOARD_CH3_DATA_ID,RC_SCIENCESENSORSBOARD_CH3_DATA_COUNT, ch4readings);
-      break;
+        RoveComm.write(RC_SCIENCESENSORSBOARD_CH3_DATA_ID,RC_SCIENCESENSORSBOARD_CH3_DATA_COUNT, ch4readings[0]);
+        break;
+      }
     }
   }
 }
@@ -198,7 +205,7 @@ String readCh4Bytes(int len)
 {
   String output="";
   for(int i=0;i<len;i++)
-    output+=(char)CH4_Serial.read();
+    output+=(char)userial.read();
    return output;
 }
 
