@@ -149,17 +149,23 @@ void ch4Reading()
     {
       if(userial.read() ==':') //Start at the beginning of the ch4 sensor output
       {
+        userial.read();
         float ch4readings[2];
         //readCh4Bytes(18); // skipping to the percent concentration
         ch4readings[0] = strtof(readCh4Bytes(4).c_str(),NULL); //Concentration - read in percent, converted to ppm
-        //readCh4Bytes(17); //skipping to temperature
-        ch4readings[1] = strtof(readCh4Bytes(2).c_str(),NULL);
+        while (userial.read() != 'T');
+        if(userial.read() == ':')
+        {
+          userial.read();
+          ch4readings[1] = strtof(readCh4Bytes(3).c_str(),NULL);
+        }
+        
         //readCh4Bytes(7); //skipping rest of string
 
         //will likely need some sort of correction like o2
         //float ch4_ppm = map(ch4readings[0], 7000, 100000, 1.7, 50000);
 
-        RoveComm.write(RC_SCIENCESENSORSBOARD_CH3_DATA_ID,RC_SCIENCESENSORSBOARD_CH3_DATA_COUNT, ch4readings[0]);
+        RoveComm.write(RC_SCIENCESENSORSBOARD_CH3_DATA_ID,RC_SCIENCESENSORSBOARD_CH3_DATA_COUNT, ch4readings);
         break;
       }
     }
