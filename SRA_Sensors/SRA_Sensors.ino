@@ -7,7 +7,8 @@ rovecomm_packet packet;
 
 EthernetServer TCPServer(RC_ROVECOMM_SCIENCESENSORSBOARD_PORT);
 
-void setup(){
+void setup()
+{
   timing = 0;   //Initialize the timing variable
 
   Computer_Serial.begin(115200);
@@ -43,7 +44,8 @@ void setup(){
   delay(100);
 }
 
-void loop(){
+void loop()
+{
   //Read sensor data only every second
   myusb.Task();
   if(timing%10==0)
@@ -121,37 +123,23 @@ void pdReading()
 
 void o2Reading()
 {
-  for(int i=0;i<2;i++)
-  {
-    if(O2_Serial.read()=='O') //Start at the beginning of the o2 sensor output
+    if(O2_Serial.read()=='%') //Start at the beginning of the o2 Percentage sensor output
     {
       float o2readings[1];
-      readO2Bytes(25); // skipping to the percent concentration
+      O2_Serial.read();
       o2readings[0] = strtof(readO2Bytes(6).c_str(),NULL)*10000.0; //Concentration - read in percent, converted to ppm
-      readO2Bytes(11); //skipping rest of string
-
-      if(o2readings[0]>300000) //correction for o2 values being randomly multiplied by 10, max readable value should be 25%
-      {
-        o2readings[0] /= 10.0;
-      }
-
       RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
-      break;
     }
-  }
 }
 
 void ch4Reading()
 {
-  for(int i=0;i<2;i++)
-  {
     if(userial.read() =='C') //Start at the beginning of the ch4 sensor output
     {
       if(userial.read() ==':') //Start at the beginning of the ch4 sensor output
       {
         userial.read();
         float ch4readings[2];
-        //readCh4Bytes(18); // skipping to the percent concentration
         ch4readings[0] = strtof(readCh4Bytes(4).c_str(),NULL); //Concentration - read in percent, converted to ppm
         while (userial.read() != 'T');
         if(userial.read() == ':')
@@ -159,17 +147,9 @@ void ch4Reading()
           userial.read();
           ch4readings[1] = strtof(readCh4Bytes(3).c_str(),NULL);
         }
-        
-        //readCh4Bytes(7); //skipping rest of string
-
-        //will likely need some sort of correction like o2
-        //float ch4_ppm = map(ch4readings[0], 7000, 100000, 1.7, 50000);
-
         RoveComm.write(RC_SCIENCESENSORSBOARD_CH3_DATA_ID,RC_SCIENCESENSORSBOARD_CH3_DATA_COUNT, ch4readings);
-        break;
       }
     }
-  }
 }
 
 void co2Reading()
