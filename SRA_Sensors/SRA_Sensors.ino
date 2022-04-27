@@ -1,15 +1,17 @@
 #include "SRA_Sensors.h"
 
-int timing;   //variable to keep count
+USBHost myusb;
+USBSerial userial(myusb);
+RoveCommEthernet RoveComm; //what is this?
+rovecomm_packet packet;
+EthernetServer TCPServer(RC_ROVECOMM_SCIENCESENSORSBOARD_PORT);
+
+IntervalTimer Telemetry;
 
 void setup()
 {
-  timing = 0;   //Initialize the timing variable
-
-  Computer_Serial.begin(115200);
   CO2_Serial.begin(19200);
-  O2_Serial.begin(9600);  
-  CH4_Serial.begin(115200);
+  O2_Serial.begin(9600);
   myusb.begin();
   userial.begin(115200);
 
@@ -24,34 +26,13 @@ void setup()
   digitalWrite(Laser1, LOW);
   digitalWrite(Laser2, LOW);
   digitalWrite(Laser3, LOW);
-
-  // configure PIN mode
-  pinMode(NO2_CS, OUTPUT);
-
-  // set initial PIN state
-  digitalWrite(NO2_CS, HIGH);
-
-  // initialize SPI interface for MCP3208
-  //SPISettings settings(ADC_CLK, MSBFIRST, SPI_MODE0);
-  //SPI.begin();
-  //SPI.beginTransaction(settings);
-
-  delay(100);
+  Telemetry.begin(telemetry,1500000);
 }
 
 void loop()
 {
   //Read sensor data only every second
   //myusb.Task();
-  if(timing%10==0)
-  {
-    o2Reading();
-    co2Reading();
-    noReading();
-    //no2Reading();
-    ch4Reading();
-    //pdReading();
-  }
 
   //Read from RoveComm
   packet = RoveComm.read();
@@ -60,7 +41,7 @@ void loop()
     switch(packet.data_id)
     {
       case RC_SCIENCESENSORSBOARD_LIGHTS_DATA_ID:    //Switch UVLED on or off
-        updateLed((int)packet.data[0]);
+        //updateLed((int)packet.data[0]);
         break;
       case RC_SCIENCESENSORSBOARD_FLASERS_DATA_ID:
         uint8_t* lasersOn = (uint8_t*)packet.data;
@@ -72,12 +53,19 @@ void loop()
         }
     }
   }
-  timing++;   //Increment the timer
-  delay(100);
 }
 
-void updateLed(int msg)
+void telemetry()
 {
+    o2Reading();
+    co2Reading();
+    noReading();
+    //no2Reading();
+    ch4Reading();
+    //pdReading();
+}
+void updateLed(int msg)
+{/*
   if(msg==RC_SCIENCESENSORSBOARD_LIGHTS_DATA_ID)
   {
     digitalWrite(UVLED_ENABLE_PIN,HIGH);
@@ -87,11 +75,11 @@ void updateLed(int msg)
   {
     digitalWrite(UVLED_ENABLE_PIN,LOW);
     Computer_Serial.println("Setting Low");
-  }
+  }*/
 }
 
 void pdReading()
-{
+{/*
   float pdreadings[3];
 
   //gets adc values from sensor output
@@ -113,7 +101,7 @@ void pdReading()
   pdreadings[1] = reverseCurrent*(exp(-(50/3) * v2)-1) - darkCurrent;
   pdreadings[2] = reverseCurrent*(exp(-(50/3) * v3)-1) - darkCurrent;
 
-  RoveComm.write(RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_ID,RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_COUNT, pdreadings);
+  RoveComm.write(RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_ID,RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_COUNT, pdreadings);*/
 }
 
 void o2Reading()
@@ -202,42 +190,4 @@ void noReading()
   RoveComm.write(RC_SCIENCESENSORSBOARD_NO_DATA_ID,RC_SCIENCESENSORSBOARD_NO_DATA_COUNT,val);
 
   delay(100);
-}
-
-void no2Reading()
-{
-  //gets adc value from sensor output
-  uint16_t raw = readNo2();
-
-  // get analog value
-  float val = raw * ref_voltage / adc_resolution;
-
-  Serial.println((float)val);
-  RoveComm.write(RC_SCIENCESENSORSBOARD_NO2_DATA_ID,RC_SCIENCESENSORSBOARD_NO2_DATA_COUNT,(float)val);
-
-  delay(100);
-}
-
-uint16_t readNo2()
-{
-  byte first = 0;
-  byte last = 0;
-  uint16_t no2_reading = 0;
-
-  digitalWrite(NO2_CS, LOW);
-
-  // receive first(msb) 5 bits
-  first = SPI.transfer(0x00);
-  Computer_Serial.println(first);
-  // receive last(lsb) 8 bits
-  last = SPI.transfer(0x00);
-  Computer_Serial.println(last);
-
-  // deactivate ADC with slave select
-  digitalWrite(NO2_CS, HIGH);
-
-  // correct bit offset
-  // |x|x|x|11|10|9|8|7| |6|5|4|3|2|1|0|1
-  no2_reading =((first<<8)|(last&0xff));//Combine the data
-  return (no2_reading >> 1);
 }

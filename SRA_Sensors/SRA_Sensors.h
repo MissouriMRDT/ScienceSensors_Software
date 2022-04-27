@@ -45,16 +45,9 @@ String readO2Bytes(int len); //O2 Sensor output to string
 void co2Reading(); //Takes ppm reading from the co2 sensor and sends to rovecomm
 void o2Reading(); //Takes a  a %vol reading from o2 sensor, converts to ppm and sends to rovecomm
 void ch4Reading(); //Takes a %vol reading from ch4 sensor, converts to ppm and sends to rovecomm
-void no2Reading(); //Takes adc voltage reading from no2 sensor, converts to voltage and sends to rovecomm
 void noReading(); //Takes voltage reading from no sensor and sends to rovecomm
 void pdReading(); //Takes voltage reading from photodiodes, converts to current and sends to rovecomm
 void updateLed(int msg); //Toggles UV Led based on message from rovecomm
-
-USBHost myusb;
-USBSerial userial(myusb);
-
-RoveCommEthernet RoveComm; //what is this?
-rovecomm_packet packet;
-EthernetServer TCPServer(RC_ROVECOMM_SCIENCESENSORSBOARD_PORT);
+void telemetry();
 
 #endif
