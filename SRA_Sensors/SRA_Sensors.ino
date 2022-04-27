@@ -2,11 +2,6 @@
 
 int timing;   //variable to keep count
 
-RoveCommEthernet RoveComm; //what is this?
-rovecomm_packet packet;
-
-EthernetServer TCPServer(RC_ROVECOMM_SCIENCESENSORSBOARD_PORT);
-
 void setup()
 {
   timing = 0;   //Initialize the timing variable
@@ -47,12 +42,12 @@ void setup()
 void loop()
 {
   //Read sensor data only every second
-  myusb.Task();
+  //myusb.Task();
   if(timing%10==0)
   {
     o2Reading();
     co2Reading();
-    //noReading();
+    noReading();
     //no2Reading();
     ch4Reading();
     //pdReading();
@@ -201,10 +196,10 @@ void noReading()
   uint16_t raw = analogRead(NO_Gas);
 
   // get analog value
-  float val = raw * ref_voltage / adc_resolution;
-
-  Serial.println((float)val);
-  RoveComm.write(RC_SCIENCESENSORSBOARD_NO_DATA_ID,RC_SCIENCESENSORSBOARD_NO_DATA_COUNT,(float)val);
+  float val = map(raw, MIN_ADC, MAX_ADC, MIN_NO_PPM, MAX_NO_PPM); //* ref_voltage / adc_resolution;
+  val /= 1000.0; 
+  //Serial.println((float)val);
+  RoveComm.write(RC_SCIENCESENSORSBOARD_NO_DATA_ID,RC_SCIENCESENSORSBOARD_NO_DATA_COUNT,val);
 
   delay(100);
 }

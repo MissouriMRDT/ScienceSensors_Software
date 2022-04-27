@@ -23,6 +23,10 @@
 #define ADC_CLK 1600000
 #define ref_voltage 5
 #define adc_resolution 4096
+#define MIN_ADC         0
+#define MAX_ADC         4095
+#define MIN_NO_PPM      100
+#define MAX_NO_PPM      30000
 
 #define Photodiode1 A11
 #define Photodiode2 A10
@@ -48,5 +52,9 @@ void updateLed(int msg); //Toggles UV Led based on message from rovecomm
 
 USBHost myusb;
 USBSerial userial(myusb);
+
+RoveCommEthernet RoveComm; //what is this?
+rovecomm_packet packet;
+EthernetServer TCPServer(RC_ROVECOMM_SCIENCESENSORSBOARD_PORT);
 
 #endif
