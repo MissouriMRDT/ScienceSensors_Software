@@ -26,7 +26,7 @@ void setup()
   digitalWrite(Laser1, LOW);
   digitalWrite(Laser2, LOW);
   digitalWrite(Laser3, LOW);
-  Telemetry.begin(telemetry,1500000);
+  Telemetry.begin(telemetry,150000);
 }
 
 void loop()
@@ -106,12 +106,16 @@ void pdReading()
 
 void o2Reading()
 {
-    if(O2_Serial.read()=='%') //Start at the beginning of the o2 Percentage sensor output
+    if(O2_Serial.read()=='O') //Start at the beginning of the o2 Percentage sensor output
     {
-      float o2readings[1];
-      O2_Serial.read();
-      o2readings[0] = strtof(readO2Bytes(6).c_str(),NULL)*10000.0; //Concentration - read in percent, converted to ppm
-      RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
+      float o2readings;
+      readO2Bytes(25);
+      o2readings = strtof(readO2Bytes(6).c_str(),NULL)*10000.0; //Concentration - read in percent, converted to ppm
+      readO2Bytes(11);
+      if (o2readings < 500000 && o2readings > 50000)
+      {
+          RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID,RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
+      }
     }
 }
 
@@ -185,7 +189,6 @@ void noReading()
 
   // get analog value
   float val = map(raw, MIN_ADC, MAX_ADC, MIN_NO_PPM, MAX_NO_PPM); //* ref_voltage / adc_resolution;
-  val /= 1000.0; 
   //Serial.println((float)val);
   RoveComm.write(RC_SCIENCESENSORSBOARD_NO_DATA_ID,RC_SCIENCESENSORSBOARD_NO_DATA_COUNT,val);
 
