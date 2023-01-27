@@ -4,26 +4,27 @@ void setup()
 {
     CO2_SERIAL.begin(CO2_BAUD);
     O2_SERIAL.begin(O2_BAUD);
-    myusb.begin();
-    userial.begin(USERIAL_BAUD);
+    CH4_SERIAL.begin(CH4_BAUD);
 
     // start RoveComm
     RoveComm.begin(RC_SCIENCESENSORSBOARD_FOURTHOCTET, &TCPServer, RC_ROVECOMM_SCIENCESENSORSBOARD_MAC);
 
-    pinMode(UVLED_ENABLE_PIN, OUTPUT); // setup UVLED
-    pinMode(Laser1, OUTPUT);
-    pinMode(Laser2, OUTPUT);
-    pinMode(Laser3, OUTPUT);
+    bool ch4Available false;
 
-    digitalWrite(Laser1, LOW);
-    digitalWrite(Laser2, LOW);
-    digitalWrite(Laser3, LOW);
+    pinMode(UVLED_260, OUTPUT); // setup UVLEDs
+    pinMode(UVLED_275, OUTPUT);
+    pinMode(UVLED_280, OUTPUT);
+    pinMode(UVLED_310, OUTPUT);
+
+    digitalWrite(UVLED_260, LOW);
+    digitalWrite(UVLED_275, LOW);
+    digitalWrite(UVLED_280, LOW);
+    digitalWrite(UVLED_310, Low)
     Telemetry.begin(telemetry, TELEM_TIMER);
 }
 
 void loop()
 {
-    // Lasers and lights didn't end up happening for this board
     // RoveComm.read()
 }
 
@@ -31,9 +32,14 @@ void telemetry()
 {
     o2Reading();
     co2Reading();
-    noReading();
-    ch4Reading();
+    //no2Reading();
+    //ch4Reading();
+    //nh3Reading();
+    //LEDControl();
+    //microControl(); 
 }
+
+    
 
 void o2Reading()
 {
@@ -50,25 +56,13 @@ void o2Reading()
     }
 }
 
-void ch4Reading()
+// Returns a string of the next "len" bytes read from 02 sensor
+String readO2Bytes(int len)
 {
-    if (userial.read() == 'C') // Start at the beginning of the ch4 sensor output
-    {
-        if (userial.read() == ':') // Start at the beginning of the ch4 sensor output
-        {
-            userial.read();
-            float ch4readings[2];
-            ch4readings[0] = strtof(readCh4Bytes(4).c_str(), NULL); // Concentration - read in percent, converted to ppm
-            while (userial.read() != 'T')
-                ;
-            if (userial.read() == ':')
-            {
-                userial.read();
-                ch4readings[1] = strtof(readCh4Bytes(3).c_str(), NULL);
-            }
-            RoveComm.write(RC_SCIENCESENSORSBOARD_CH3_DATA_ID, RC_SCIENCESENSORSBOARD_CH3_DATA_COUNT, ch4readings);
-        }
-    }
+    String output = "";
+    for (int i = 0; i < len; i++)
+        output += (char)O2_SERIAL.read();
+    return output;
 }
 
 void co2Reading()
@@ -96,32 +90,40 @@ void co2Reading()
     }
 }
 
-// Returns a string of the next "len" bytes read from 02 sensor
-String readO2Bytes(int len)
+void ch4Reading()
 {
-    String output = "";
-    for (int i = 0; i < len; i++)
-        output += (char)O2_SERIAL.read();
-    return output;
+    if (ch4Available)
+    {
+
+    }
 }
 
-// Returns a string of the next "len" bytes read from Ch4 sensor
-String readCh4Bytes(int len)
+void ch4StartMeasurement()
 {
-    String output = "";
-    for (int i = 0; i < len; i++)
-        output += (char)userial.read();
-    return output;
+    CH4_SERIAL.write(0x61);
+    CH4_SERIAL.write(0x00);
+    CH4_SERIAL.write(0x01);
+    CH4_SERIAL.write(0x00);
+    CH4_SERIAL.write(0x00);
+    CH4_SERIAL.write(0x00);
+    CH4_Serial.write(checksum);
+    CH4_SERIAL.write(0x02);
 }
 
-void noReading()
+void ch4init()
+{
+    
+}
+
+void nh3Reading()
 {
     // gets adc value from sensor output
     uint16_t raw = analogRead(NO_GAS);
 
     // get analog value
     float val = map(raw, MIN_ADC, MAX_ADC, MIN_NO_PPM, MAX_NO_PPM);
-    RoveComm.write(RC_SCIENCESENSORSBOARD_NO_DATA_ID, RC_SCIENCESENSORSBOARD_NO_DATA_COUNT, val);
+    RoveComm.write(RC_SCIENCESENSORSBOARD_NH3_DATA_ID, RC_SCIENCESENSORSBOARD_NH3_DATA_COUNT, val);
 
     delay(100);
 }
+
