@@ -19,24 +19,42 @@ void setup()
     digitalWrite(UVLED_260, LOW);
     digitalWrite(UVLED_275, LOW);
     digitalWrite(UVLED_280, LOW);
-    digitalWrite(UVLED_310, Low)
+    digitalWrite(UVLED_310, LOW);
     Telemetry.begin(telemetry, TELEM_TIMER);
 }
 
 void loop()
 {
-    // RoveComm.read()
+    packet = RoveComm.read();
+
+    switch (packet.data_id)
+    {
+    case RC_SCIENCESENSORSBOARD_FLUOROMETERLEDS_DATA_ID:
+        LEDControl();
+
+
+        fluroReading();
+        break;
+    case RC_SCIENCESENSORSBOARD_MICROSCOPESERVO_DATA_ID:
+        microControl();
+        break;
+    }
+
+
+    o2Reading();
+    co2Reading();
+    ch4Reading();
+    no2Reading();
+    nh3Reading();
+    telemetry();
 }
 
 void telemetry()
 {
-    o2Reading();
-    co2Reading();
-    //no2Reading();
-    //ch4Reading();
-    //nh3Reading();
-    //LEDControl();
-    //microControl(); 
+    if (RC_SCIENCESENSORSBOARD_FLUOROMETERLEDS_DATA_ID) 
+    {
+        RoveComm.write(RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_ID, RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_COUNT, );
+    }
 }
 
     
