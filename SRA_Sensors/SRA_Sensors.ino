@@ -23,6 +23,8 @@ void setup()
     Telemetry.begin(telemetry, TELEM_TIMER);
 }
 
+
+
 void loop()
 {
     packet = RoveComm.read();
@@ -49,12 +51,22 @@ void loop()
     telemetry();
 }
 
+
+
 void telemetry()
 {
-    if (RC_SCIENCESENSORSBOARD_FLUOROMETERLEDS_DATA_ID) 
-    {
+    /*
+    if (RC_SCIENCESENSORSBOARD_FLUOROMETERLEDS_DATA_ID) {
         RoveComm.write(RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_ID, RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_COUNT, );
     }
+    */
+    if (o2ReadingOkay) {
+        RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID, RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
+    }
+    if (co2ReadingOkay) {
+        RoveComm.write(RC_SCIENCESENSORSBOARD_CO2_DATA_ID, RC_SCIENCESENSORSBOARD_CO2_DATA_COUNT, (float)co2reading);
+    }
+    RoveComm.write(RC_SCIENCESENSORSBOARD_NH3_DATA_ID, RC_SCIENCESENSORSBOARD_NH3_DATA_COUNT, nh3Value);
 }
 
     
@@ -63,25 +75,26 @@ void o2Reading()
 {
     if (O2_SERIAL.read() == 'O') // Start at the beginning of the o2 Percentage sensor output
     {
-        float o2readings;
         readO2Bytes(25);
         o2readings = strtof(readO2Bytes(6).c_str(), NULL) * 10000.0; // Concentration - read in percent, converted to ppm
         readO2Bytes(11);
-        if (o2readings < 500000 && o2readings > 50000)
-        {
-            RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID, RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
-        }
+
+        if (o2readings < 500000 && o2readings > 50000) o2ReadingOkay = true;
+        else o2ReadingOkay = false;
     }
 }
 
-// Returns a string of the next "len" bytes read from 02 sensor
-String readO2Bytes(int len)
+
+
+String readO2Bytes(int len) // Returns a string of the next "len" bytes read from 02 sensor
 {
     String output = "";
     for (int i = 0; i < len; i++)
         output += (char)O2_SERIAL.read();
     return output;
 }
+
+
 
 void co2Reading()
 {
@@ -100,21 +113,21 @@ void co2Reading()
     CO2_SERIAL.read();
     byte msb = CO2_SERIAL.read(); // Sensor data is sent in two bytes
     byte lsb = CO2_SERIAL.read();
-    short reading = (msb << 8) | (lsb & 0xff); // Combine the data
+    short co2reading = ((msb << 8) | (lsb & 0xff)); // Combine the data
 
-    if (reading != -1) // If we got co2 reading then output
-    {
-        RoveComm.write(RC_SCIENCESENSORSBOARD_CO2_DATA_ID, RC_SCIENCESENSORSBOARD_CO2_DATA_COUNT, (float)reading);
-    }
+    if (co2reading != -1) co2ReadingOkay = true; // If we got co2 reading then output
+    else co2ReadingOkay = false;
 }
+
+
 
 void ch4Reading()
 {
-    if (ch4Available)
-    {
-
-    }
+    ch4init();
+    if (ch4Available) ch4StartMeasurement();
 }
+
+
 
 void ch4StartMeasurement()
 {
@@ -124,14 +137,18 @@ void ch4StartMeasurement()
     CH4_SERIAL.write(0x00);
     CH4_SERIAL.write(0x00);
     CH4_SERIAL.write(0x00);
-    CH4_Serial.write(checksum);
+    CH4_SERIAL.write(checksum);
     CH4_SERIAL.write(0x02);
 }
+
+
 
 void ch4init()
 {
     
 }
+
+
 
 void nh3Reading()
 {
@@ -139,9 +156,14 @@ void nh3Reading()
     uint16_t raw = analogRead(NO_GAS);
 
     // get analog value
-    float val = map(raw, MIN_ADC, MAX_ADC, MIN_NO_PPM, MAX_NO_PPM);
-    RoveComm.write(RC_SCIENCESENSORSBOARD_NH3_DATA_ID, RC_SCIENCESENSORSBOARD_NH3_DATA_COUNT, val);
-
+    float nh3Value = map(raw, MIN_ADC, MAX_ADC, MIN_NO_PPM, MAX_NO_PPM);
+    
     delay(100);
 }
 
+
+
+void no2Reading()
+{
+    // code go brrr
+}

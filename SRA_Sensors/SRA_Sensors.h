@@ -5,12 +5,14 @@
 #include "RoveComm.h"
 #include <SPI.h>
 
+// Serial assignments
 #define COMPUTER_SERIAL Serial
 #define ROVECOMM_SERIAL Serial3
-
 #define O2_SERIAL Serial2
 #define CO2_SERIAL Serial1
 #define CH4_SERIAL Serial6
+
+// Pin assignments
 #define CCD_MCS A2
 #define CCD_OS A3
 #define CCD_ICG A16
@@ -24,6 +26,7 @@
 #define UVLED_280 A6
 #define UVLED_310 A7
 
+// Variable definitions
 #define ADC_CLK 1600000
 #define MIN_ADC 0
 #define MAX_ADC 4095
@@ -36,11 +39,20 @@
 
 #define TELEM_TIMER 150000
 
+bool o2ReadingOkay;
+float o2readings;
+bool co2ReadingOkay;
+short co2reading;
+bool ch4Available;
+float nh3Value;
 
+// Function definitions
 String readO2Bytes(int len); // O2 Sensor output to string
 void co2Reading();           // Takes ppm reading from the co2 sensor and sends to rovecomm
 void o2Reading();            // Takes a  a %vol reading from o2 sensor, converts to ppm and sends to rovecomm
 void ch4Reading();           // Takes a voltage reading from ch4 sensor and sends to rovecomm
+void ch4StartMeasurement();
+void ch4init();
 void no2Reading();           // Takes voltage reading from no2 sensor, converts to ppb and sends to rovecomm
 void nh3Reading();           // Takes voltage reading from nh3 sensor and sends to rovecomm
 void fluroReading();         // Reads CCDs and sends to rovecomm
