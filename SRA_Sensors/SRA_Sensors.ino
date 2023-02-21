@@ -31,23 +31,17 @@ void loop()
 
     switch (packet.data_id)
     {
-    case RC_SCIENCESENSORSBOARD_FLUOROMETERLEDS_DATA_ID:
-        LEDControl();
-
-
-        fluroReading();
-        break;
     case RC_SCIENCESENSORSBOARD_MICROSCOPESERVO_DATA_ID:
         microControl();
         break;
     }
 
 
-    o2Reading();
-    co2Reading();
-    ch4Reading();
-    no2Reading();
-    nh3Reading();
+    o2Read();
+    co2Read();
+    ch4Read();
+    no2Read();
+    nh3Read();
     telemetry();
 }
 
@@ -55,11 +49,6 @@ void loop()
 
 void telemetry()
 {
-    /*
-    if (RC_SCIENCESENSORSBOARD_FLUOROMETERLEDS_DATA_ID) {
-        RoveComm.write(RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_ID, RC_SCIENCESENSORSBOARD_FLUOROMETERDATA_DATA_COUNT, );
-    }
-    */
     if (o2ReadingOkay) {
         RoveComm.write(RC_SCIENCESENSORSBOARD_O2_DATA_ID, RC_SCIENCESENSORSBOARD_O2_DATA_COUNT, o2readings);
     }
@@ -67,11 +56,13 @@ void telemetry()
         RoveComm.write(RC_SCIENCESENSORSBOARD_CO2_DATA_ID, RC_SCIENCESENSORSBOARD_CO2_DATA_COUNT, (float)co2reading);
     }
     RoveComm.write(RC_SCIENCESENSORSBOARD_NH3_DATA_ID, RC_SCIENCESENSORSBOARD_NH3_DATA_COUNT, nh3Value);
+    RoveComm.write(RC_SCIENCESENSORSBOARD_CH4_DATA_ID, RC_SCIENCESENSORSBOARD_CH4_DATA_COUNT, ch4reading);
+    RoveComm.write(RC_SCIENCESENSORSBOARD_NO2_DATA_ID, RC_SCIENCESENSORSBOARD_NO2_DATA_COUNT, no2reading);
 }
 
     
 
-void o2Reading()
+void o2Read()
 {
     if (O2_SERIAL.read() == 'O') // Start at the beginning of the o2 Percentage sensor output
     {
@@ -96,7 +87,7 @@ String readO2Bytes(int len) // Returns a string of the next "len" bytes read fro
 
 
 
-void co2Reading()
+void co2Read()
 {
     // Send request to co2 sensor for data
     CO2_SERIAL.write(0xFF);
@@ -121,7 +112,7 @@ void co2Reading()
 
 
 
-void ch4Reading()
+void ch4Read()
 {
     ch4init();
     if (ch4Available) ch4StartMeasurement();
@@ -150,7 +141,7 @@ void ch4init()
 
 
 
-void nh3Reading()
+void nh3Read()
 {
     // gets adc value from sensor output
     uint16_t raw = analogRead(NO_GAS);
@@ -163,7 +154,7 @@ void nh3Reading()
 
 
 
-void no2Reading()
+void no2Read()
 {
     // code go brrr
 }
