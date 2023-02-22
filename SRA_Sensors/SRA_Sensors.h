@@ -45,8 +45,7 @@ float o2readings;
 bool co2ReadingOkay;
 short co2reading;
 
-bool ch4Available;
-float ch4reading;
+float ch4readings;
 
 float nh3Value;
 
@@ -57,11 +56,9 @@ String readO2Bytes(int len); // O2 Sensor output to string
 void co2Read();           // Takes ppm reading from the co2 sensor and sends to rovecomm
 void o2Read();            // Takes a  a %vol reading from o2 sensor, converts to ppm and sends to rovecomm
 void ch4Read();           // Takes a voltage reading from ch4 sensor and sends to rovecomm
-void ch4StartMeasurement();
-void ch4init();
 void no2Read();           // Takes voltage reading from no2 sensor, converts to ppb and sends to rovecomm
 void nh3Read();           // Takes voltage reading from nh3 sensor and sends to rovecomm
-void fluroRead();         // Reads CCDs and sends to rovecomm
+//void fluroRead();         // Reads CCDs and sends to rovecomm
 void telemetry();
 
 void LEDControl();           // Controls UV LEDs

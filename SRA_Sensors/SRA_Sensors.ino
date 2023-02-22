@@ -5,12 +5,14 @@ void setup()
     CO2_SERIAL.begin(CO2_BAUD);
     O2_SERIAL.begin(O2_BAUD);
     CH4_SERIAL.begin(CH4_BAUD);
-
+    delay(100);
     // start RoveComm
     RoveComm.begin(RC_SCIENCESENSORSBOARD_FOURTHOCTET, &TCPServer, RC_ROVECOMM_SCIENCESENSORSBOARD_MAC);
 
-    bool ch4Available false;
+    SPI.begin();
+    SPI.setClockDivider(SPI_CLOCK_DIV64);
 
+    /*
     pinMode(UVLED_260, OUTPUT); // setup UVLEDs
     pinMode(UVLED_275, OUTPUT);
     pinMode(UVLED_280, OUTPUT);
@@ -20,6 +22,8 @@ void setup()
     digitalWrite(UVLED_275, LOW);
     digitalWrite(UVLED_280, LOW);
     digitalWrite(UVLED_310, LOW);
+    */
+    
     Telemetry.begin(telemetry, TELEM_TIMER);
 }
 
@@ -28,14 +32,12 @@ void setup()
 void loop()
 {
     packet = RoveComm.read();
-
     switch (packet.data_id)
     {
     case RC_SCIENCESENSORSBOARD_MICROSCOPESERVO_DATA_ID:
         microControl();
         break;
     }
-
 
     o2Read();
     co2Read();
@@ -56,7 +58,7 @@ void telemetry()
         RoveComm.write(RC_SCIENCESENSORSBOARD_CO2_DATA_ID, RC_SCIENCESENSORSBOARD_CO2_DATA_COUNT, (float)co2reading);
     }
     RoveComm.write(RC_SCIENCESENSORSBOARD_NH3_DATA_ID, RC_SCIENCESENSORSBOARD_NH3_DATA_COUNT, nh3Value);
-    RoveComm.write(RC_SCIENCESENSORSBOARD_CH4_DATA_ID, RC_SCIENCESENSORSBOARD_CH4_DATA_COUNT, ch4reading);
+    RoveComm.write(RC_SCIENCESENSORSBOARD_CH4_DATA_ID, RC_SCIENCESENSORSBOARD_CH4_DATA_COUNT, ch4readings);
     RoveComm.write(RC_SCIENCESENSORSBOARD_NO2_DATA_ID, RC_SCIENCESENSORSBOARD_NO2_DATA_COUNT, no2reading);
 }
 
@@ -114,29 +116,22 @@ void co2Read()
 
 void ch4Read()
 {
-    ch4init();
-    if (ch4Available) ch4StartMeasurement();
-}
-
-
-
-void ch4StartMeasurement()
-{
-    CH4_SERIAL.write(0x61);
-    CH4_SERIAL.write(0x00);
-    CH4_SERIAL.write(0x01);
-    CH4_SERIAL.write(0x00);
-    CH4_SERIAL.write(0x00);
-    CH4_SERIAL.write(0x00);
-    CH4_SERIAL.write(checksum);
-    CH4_SERIAL.write(0x02);
-}
-
-
-
-void ch4init()
-{
-    
+    if (userial.read() == 'C') // Start at the beginning of the ch4 sensor output
+    {
+        if (userial.read() == ':') // Start at the beginning of the ch4 sensor output
+        {
+            userial.read();
+            float ch4readings[2];
+            ch4readings[0] = strtof(readCh4Bytes(4).c_str(), NULL); // Concentration - read in percent, converted to ppm
+            while (userial.read() != 'T')
+                ;
+            if (userial.read() == ':')
+            {
+                userial.read();
+                ch4readings[1] = strtof(readCh4Bytes(3).c_str(), NULL);
+            }
+        }
+    }
 }
 
 
@@ -155,6 +150,13 @@ void nh3Read()
 
 
 void no2Read()
+{
+    // our current sensor has a 200s response time, so no
+}
+
+
+
+void microControl()
 {
     // code go brrr
 }
